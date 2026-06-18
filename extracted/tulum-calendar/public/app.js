@@ -670,6 +670,9 @@ function isCacheFresh(cacheEntry) {
 
 function renderEventsForCurrentMode(events, calendars) {
   renderLegend(events, calendars);
+  if (currentRangeMode === MODE_AUTO) {
+    renderAvailability(events);
+  }
   if (currentRangeMode === MODE_MONTH) {
     renderMonthBoard(events);
   } else {
@@ -769,9 +772,6 @@ async function loadEvents(options = {}) {
     updateStatusFromGeneratedAt(data.generatedAt);
     if (currentRangeMode === MODE_MONTH) {
       prefetchAdjacentMonths();
-    }
-    if (currentRangeMode === MODE_AUTO) {
-      renderAvailability(data.events);
     }
   } catch (err) {
     if (loadToken !== latestLoadToken) return;

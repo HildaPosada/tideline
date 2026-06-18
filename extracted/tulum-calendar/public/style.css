@@ -364,6 +364,10 @@ body {
   margin-bottom: 1.2rem;
 }
 
+.agenda.is-month .agenda-status {
+  display: none;
+}
+
 /* The tideline: a single vertical rule events sit along,
    like a mark left by the tide rather than a stack of boxes. */
 .tideline-wrap {

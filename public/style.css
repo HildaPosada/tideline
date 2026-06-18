@@ -1,0 +1,315 @@
+/* ===========================================================
+   Tideline — design tokens
+   Palette: warm sand, deep ocean teal, clay terracotta,
+   soft white, charcoal palm, muted sage.
+   =========================================================== */
+
+:root {
+  --sand: #E8DCC8;
+  --sand-deep: #DCCDB0;
+  --teal: #3D5C56;
+  --teal-deep: #2A4742;
+  --clay: #C17A5C;
+  --clay-soft: #D9A085;
+  --white-soft: #FAF6F0;
+  --charcoal: #2B2B26;
+  --sage: #A8B89C;
+
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Inter', sans-serif;
+
+  --radius: 18px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* this is a fixed wall display, not a scrolling page */
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--sand);
+  color: var(--charcoal);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle paper-grain texture overlay to keep the warm backdrop from
+   feeling like flat digital color — a quiet, tactile cue. */
+.grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  z-index: 50;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 38% 62%;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* ===========================================================
+   HERO — left panel
+   =========================================================== */
+
+.hero {
+  background: var(--teal);
+  color: var(--white-soft);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6vh 5vw;
+  position: relative;
+}
+
+.hero-eyebrow {
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--sage);
+  font-weight: 500;
+}
+
+.hero-date {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 11rem;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin-top: 0.2rem;
+  color: var(--white-soft);
+}
+
+.hero-month {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.6rem;
+  font-weight: 400;
+  color: var(--clay-soft);
+  margin-top: 0.3rem;
+}
+
+.hero-divider {
+  display: flex;
+  align-items: center;
+  margin: 3rem 0 2rem 0;
+  width: 100%;
+}
+
+.hero-divider::before,
+.hero-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(250, 246, 240, 0.18);
+}
+
+.hero-divider-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--clay);
+  margin: 0 12px;
+  flex-shrink: 0;
+}
+
+.hero-ambient {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.15rem;
+  color: rgba(250, 246, 240, 0.75);
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.hero-clock {
+  font-family: var(--font-body);
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: var(--sage);
+  margin-top: 2.5rem;
+  letter-spacing: 0.04em;
+}
+
+.legend {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: auto;
+  padding-top: 3rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: rgba(250, 246, 240, 0.85);
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-dot.clay { background: var(--clay); }
+.legend-dot.teal { background: var(--sage); border: 1.5px solid rgba(250, 246, 240, 0.5); }
+
+/* ===========================================================
+   AGENDA — right panel, the "tideline"
+   =========================================================== */
+
+.agenda {
+  background: var(--white-soft);
+  padding: 6vh 5vw;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.agenda-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 3rem;
+  flex-shrink: 0;
+}
+
+.agenda-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.9rem;
+  color: var(--charcoal);
+}
+
+.agenda-status {
+  font-size: 0.85rem;
+  color: var(--sage);
+  font-weight: 500;
+}
+
+/* The tideline: a single vertical rule events sit along,
+   like a mark left by the tide rather than a stack of boxes. */
+.tideline-wrap {
+  position: relative;
+  padding-left: 2.5rem;
+  flex: 1;
+}
+
+.tideline-wrap::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  bottom: 6px;
+  width: 1.5px;
+  background: linear-gradient(to bottom, var(--clay-soft), var(--sage));
+  opacity: 0.4;
+}
+
+.day-group {
+  margin-bottom: 2.8rem;
+}
+
+.day-group-label {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--clay);
+  margin-bottom: 1.2rem;
+  position: relative;
+}
+
+.day-group-label::before {
+  content: '';
+  position: absolute;
+  left: -2.5rem;
+  top: 50%;
+  transform: translate(-3px, -50%);
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--clay);
+  border: 2px solid var(--white-soft);
+}
+
+.event-row {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.7rem 0;
+  position: relative;
+}
+
+.event-row::before {
+  content: '';
+  position: absolute;
+  left: -2.5rem;
+  top: 1.1rem;
+  transform: translateX(-1.5px);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.event-row.person-hp::before { background: var(--clay); }
+.event-row.person-kim::before { background: var(--teal); box-shadow: 0 0 0 1.5px var(--white-soft), 0 0 0 2.5px var(--teal); }
+
+.event-time {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--sage);
+  min-width: 78px;
+  flex-shrink: 0;
+}
+
+.event-title {
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--charcoal);
+}
+
+.event-meta {
+  font-size: 0.85rem;
+  color: var(--sage);
+}
+
+.empty-state {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.3rem;
+  color: var(--sage);
+  padding: 2rem 0;
+}
+
+/* ===========================================================
+   Responsive — collapse to single column for smaller iPads
+   =========================================================== */
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    height: auto;
+    min-height: 100vh;
+  }
+  html, body { overflow: auto; }
+  .hero-date { font-size: 7rem; }
+  .legend { padding-top: 1.5rem; }
+}
+
+/* Respect reduced motion preferences throughout */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

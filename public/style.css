@@ -29,11 +29,17 @@ html, body {
   overflow: hidden; /* this is a fixed wall display, not a scrolling page */
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   font-family: var(--font-body);
   background: var(--sand);
   color: var(--charcoal);
   -webkit-font-smoothing: antialiased;
+  touch-action: manipulation;
 }
 
 /* Subtle paper-grain texture overlay to keep the warm backdrop from
@@ -168,7 +174,7 @@ body {
 
 .agenda {
   background: var(--white-soft);
-  padding: 6vh 5vw;
+  padding: 5vh 4vw;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -177,20 +183,61 @@ body {
 .agenda-header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 3rem;
+  align-items: center;
+  margin-bottom: 2.4rem;
   flex-shrink: 0;
+  gap: 1.2rem;
 }
 
 .agenda-title {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: 1.9rem;
+  font-size: 2rem;
   color: var(--charcoal);
 }
 
+.agenda-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.65rem;
+}
+
+.range-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem;
+  border-radius: 999px;
+  background: #efe7db;
+}
+
+.range-btn {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 0;
+  border-radius: 999px;
+  color: var(--teal-deep);
+  background: transparent;
+  min-height: 44px;
+  min-width: 112px;
+  padding: 0.55rem 1rem;
+}
+
+.range-btn.is-active {
+  background: var(--teal);
+  color: var(--white-soft);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
+}
+
+.range-btn:focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 2px;
+}
+
 .agenda-status {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: var(--sage);
   font-weight: 500;
 }
@@ -220,7 +267,7 @@ body {
 
 .day-group-label {
   font-family: var(--font-body);
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -245,8 +292,8 @@ body {
 .event-row {
   display: flex;
   align-items: baseline;
-  gap: 1rem;
-  padding: 0.7rem 0;
+  gap: 1.1rem;
+  padding: 0.85rem 0;
   position: relative;
 }
 
@@ -266,22 +313,23 @@ body {
 
 .event-time {
   font-family: var(--font-body);
-  font-size: 0.9rem;
+  font-size: 1.02rem;
   font-weight: 500;
   color: var(--sage);
-  min-width: 78px;
+  min-width: 88px;
   flex-shrink: 0;
 }
 
 .event-title {
   font-family: var(--font-body);
-  font-size: 1.05rem;
+  font-size: 1.18rem;
   font-weight: 500;
   color: var(--charcoal);
+  line-height: 1.32;
 }
 
 .event-meta {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: var(--sage);
 }
 
@@ -307,6 +355,26 @@ body {
   html, body { overflow: auto; }
   .hero-date { font-size: 7rem; }
   .legend { padding-top: 1.5rem; }
+  .agenda {
+    padding: 4.5vh 5.2vw;
+  }
+  .agenda-header {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+  }
+  .agenda-controls {
+    width: 100%;
+    align-items: flex-start;
+  }
+  .range-toggle {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .range-btn {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 /* Respect reduced motion preferences throughout */

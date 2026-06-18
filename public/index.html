@@ -36,7 +36,13 @@
     <section class="agenda">
       <header class="agenda-header">
         <h2 class="agenda-title">The next few days</h2>
-        <p class="agenda-status" id="statusLine">Syncing…</p>
+        <div class="agenda-controls">
+          <div class="range-toggle" role="group" aria-label="Date range">
+            <button class="range-btn" id="rangeToday" data-range-days="0" type="button" aria-pressed="false">Today</button>
+            <button class="range-btn" id="rangeNext" data-range-days="3" type="button" aria-pressed="true">Next 3 days</button>
+          </div>
+          <p class="agenda-status" id="statusLine">Syncing…</p>
+        </div>
       </header>
 
       <div class="tideline-wrap" id="tideline">

@@ -3,6 +3,9 @@
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const RANGE_STORAGE_KEY = 'tidelineRangeDays';
+const ALLOWED_RANGES = [0, 3];
+let currentRangeDays = 3;
 
 // Ambient line rotates by day-of-week to keep the wall display feeling alive
 // without needing a live weather API. Tulum / coastal wellness register.
@@ -79,12 +82,63 @@ function renderLegend(events) {
   }
 }
 
+function readSavedRange() {
+  try {
+    const raw = localStorage.getItem(RANGE_STORAGE_KEY);
+    const parsed = Number(raw);
+    if (ALLOWED_RANGES.indexOf(parsed) !== -1) return parsed;
+  } catch (err) {
+    // localStorage may be blocked in hardened browser setups; default safely.
+  }
+  return 3;
+}
+
+function rangeLabel(days) {
+  return days === 0 ? 'Today' : 'Next 3 days';
+}
+
+function applyRangeSelection(days) {
+  currentRangeDays = days;
+
+  const todayBtn = document.getElementById('rangeToday');
+  const nextBtn = document.getElementById('rangeNext');
+  const isToday = days === 0;
+
+  todayBtn.classList.toggle('is-active', isToday);
+  nextBtn.classList.toggle('is-active', !isToday);
+  todayBtn.setAttribute('aria-pressed', isToday ? 'true' : 'false');
+  nextBtn.setAttribute('aria-pressed', isToday ? 'false' : 'true');
+
+  document.querySelector('.agenda-title').textContent = rangeLabel(days);
+
+  try {
+    localStorage.setItem(RANGE_STORAGE_KEY, String(days));
+  } catch (err) {
+    // Ignore storage write failures and keep using in-memory state.
+  }
+}
+
+function wireRangeToggle() {
+  const buttons = document.querySelectorAll('.range-btn');
+  for (const btn of buttons) {
+    btn.addEventListener('click', async () => {
+      const nextRange = Number(btn.getAttribute('data-range-days'));
+      if (nextRange === currentRangeDays || ALLOWED_RANGES.indexOf(nextRange) === -1) return;
+      applyRangeSelection(nextRange);
+      await loadEvents();
+    });
+  }
+}
+
 function renderAgenda(events) {
   const wrap = document.getElementById('tideline');
   wrap.innerHTML = '';
 
   if (events.length === 0) {
-    wrap.innerHTML = '<p class="empty-state">Nothing on the horizon. Enjoy the quiet.</p>';
+    const message = currentRangeDays === 0
+      ? 'Nothing scheduled today. Enjoy the breathing room.'
+      : 'Nothing on the horizon. Enjoy the quiet.';
+    wrap.innerHTML = `<p class="empty-state">${message}</p>`;
     return;
   }
 
@@ -122,7 +176,9 @@ function escapeHtml(str) {
 async function loadEvents() {
   const statusLine = document.getElementById('statusLine');
   try {
-    const res = await fetch('/api/events?days=4');
+    statusLine.textContent = 'Syncing...';
+
+    const res = await fetch(`/api/events?days=${currentRangeDays}`);
     const data = await res.json();
 
     if (data.errors && data.errors.length > 0) {
@@ -133,7 +189,7 @@ async function loadEvents() {
     renderAgenda(data.events);
 
     const syncedAt = new Date(data.generatedAt);
-    statusLine.textContent = `Updated ${formatTime(syncedAt.toISOString(), false)}`;
+    statusLine.textContent = `Updated ${formatTime(syncedAt.toISOString(), false)} · ${rangeLabel(currentRangeDays)}`;
   } catch (err) {
     console.error('Failed to load events', err);
     statusLine.textContent = 'Connection trouble — retrying soon';
@@ -141,6 +197,10 @@ async function loadEvents() {
 }
 
 function init() {
+  const savedRange = readSavedRange();
+  applyRangeSelection(savedRange);
+  wireRangeToggle();
+
   renderClockAndDate();
   loadEvents();
 

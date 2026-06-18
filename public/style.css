@@ -204,25 +204,29 @@ body {
 }
 
 .range-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 0.35rem;
   padding: 0.3rem;
-  border-radius: 999px;
+  border-radius: 16px;
   background: #efe7db;
+  min-width: 452px;
 }
 
 .range-btn {
   font-family: var(--font-body);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
   border: 0;
-  border-radius: 999px;
+  border-radius: 12px;
   color: var(--teal-deep);
   background: transparent;
   min-height: 44px;
-  min-width: 112px;
-  padding: 0.55rem 1rem;
+  min-width: 98px;
+  padding: 0.55rem 0.7rem;
+  line-height: 1.1;
+  text-align: center;
 }
 
 .range-btn.is-active {
@@ -240,6 +244,7 @@ body {
   font-size: 0.95rem;
   color: var(--sage);
   font-weight: 500;
+  text-align: right;
 }
 
 /* The tideline: a single vertical rule events sit along,
@@ -369,11 +374,16 @@ body {
   }
   .range-toggle {
     width: 100%;
-    justify-content: space-between;
+    min-width: 0;
   }
   .range-btn {
     flex: 1;
     min-width: 0;
+    font-size: 0.82rem;
+    padding: 0.5rem 0.45rem;
+  }
+  .agenda-status {
+    text-align: left;
   }
 }
 

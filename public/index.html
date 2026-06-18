@@ -38,8 +38,10 @@
         <h2 class="agenda-title">The next few days</h2>
         <div class="agenda-controls">
           <div class="range-toggle" role="group" aria-label="Date range">
-            <button class="range-btn" id="rangeToday" data-range-days="0" type="button" aria-pressed="false">Today</button>
-            <button class="range-btn" id="rangeNext" data-range-days="3" type="button" aria-pressed="true">Next 3 days</button>
+            <button class="range-btn" id="rangeAuto" data-range-mode="auto" type="button" aria-pressed="true">Auto</button>
+            <button class="range-btn" id="rangeToday" data-range-mode="today" type="button" aria-pressed="false">Today</button>
+            <button class="range-btn" id="rangeNext" data-range-mode="next" type="button" aria-pressed="false">Next 3 days</button>
+            <button class="range-btn" id="rangeMonth" data-range-mode="month" type="button" aria-pressed="false">Month</button>
           </div>
           <p class="agenda-status" id="statusLine">Syncing…</p>
         </div>

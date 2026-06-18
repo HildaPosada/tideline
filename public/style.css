@@ -247,6 +247,14 @@ body {
   text-align: right;
 }
 
+.agenda.is-month {
+  overflow: hidden;
+}
+
+.agenda.is-month .agenda-header {
+  margin-bottom: 1.2rem;
+}
+
 /* The tideline: a single vertical rule events sit along,
    like a mark left by the tide rather than a stack of boxes. */
 .tideline-wrap {
@@ -264,6 +272,112 @@ body {
   width: 1.5px;
   background: linear-gradient(to bottom, var(--clay-soft), var(--sage));
   opacity: 0.4;
+}
+
+.agenda.is-month .tideline-wrap {
+  padding-left: 0;
+}
+
+.agenda.is-month .tideline-wrap::before {
+  display: none;
+}
+
+.month-board {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 0.45rem;
+  height: 100%;
+  min-height: 0;
+}
+
+.month-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.month-weekday {
+  text-align: center;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sage);
+  font-weight: 600;
+}
+
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-rows: repeat(6, minmax(0, 1fr));
+  gap: 0.3rem;
+  min-height: 0;
+}
+
+.month-cell {
+  min-height: 0;
+  border-radius: 10px;
+  padding: 0.35rem;
+  background: #f2ebe0;
+  border: 1px solid #e3d9cb;
+  display: flex;
+  flex-direction: column;
+  gap: 0.26rem;
+}
+
+.month-cell.is-empty {
+  background: transparent;
+  border-color: transparent;
+}
+
+.month-cell.is-today {
+  border-color: var(--clay);
+  box-shadow: inset 0 0 0 1px rgba(193, 122, 92, 0.2);
+}
+
+.month-cell.is-past {
+  opacity: 0.68;
+}
+
+.month-day-number {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--teal-deep);
+}
+
+.month-events {
+  min-height: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+/* Tide-bead chips: a rounded form that feels softer than rigid calendar cubes. */
+.month-chip {
+  font-size: 0.62rem;
+  line-height: 1.2;
+  border-radius: 999px;
+  padding: 0.16rem 0.42rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  border: 1px solid transparent;
+}
+
+.month-chip.person-hp {
+  color: #6f3f2a;
+  background: #f2d8ca;
+  border-color: #dfb49f;
+}
+
+.month-chip.person-kim {
+  color: #1f4a44;
+  background: #d8ece8;
+  border-color: #a8cdc6;
+}
+
+.month-more {
+  font-size: 0.6rem;
+  color: var(--sage);
+  padding-left: 0.2rem;
 }
 
 .day-group {
@@ -384,6 +498,28 @@ body {
   }
   .agenda-status {
     text-align: left;
+  }
+
+  .agenda.is-month {
+    overflow: auto;
+  }
+
+  .month-weekday {
+    font-size: 0.66rem;
+  }
+
+  .month-cell {
+    padding: 0.28rem;
+    gap: 0.18rem;
+  }
+
+  .month-day-number {
+    font-size: 0.7rem;
+  }
+
+  .month-chip {
+    font-size: 0.56rem;
+    padding: 0.12rem 0.32rem;
   }
 }
 

@@ -2,6 +2,7 @@
 // Fetches merged events from /api/events and renders the hero + agenda.
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const RANGE_MODE_STORAGE_KEY = 'tidelineRangeMode';
 const MODE_AUTO = 'auto';
@@ -105,12 +106,24 @@ function getAutoResolvedMode() {
   return hour >= 6 && hour < 18 ? MODE_TODAY : MODE_NEXT;
 }
 
+function getMonthFetchDays() {
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  monthEnd.setHours(23, 59, 59, 999);
+
+  const diffMs = monthEnd.getTime() - start.getTime();
+  return Math.max(0, Math.min(31, Math.ceil(diffMs / 86400000)));
+}
+
 function resolveDaysForMode(mode) {
   if (mode === MODE_AUTO) {
     return resolveDaysForMode(getAutoResolvedMode());
   }
   if (mode === MODE_TODAY) return 0;
-  if (mode === MODE_MONTH) return 30;
+  if (mode === MODE_MONTH) return getMonthFetchDays();
   return 3;
 }
 
@@ -135,6 +148,9 @@ function applyRangeSelection(mode) {
   todayBtn.classList.toggle('is-active', mode === MODE_TODAY);
   nextBtn.classList.toggle('is-active', mode === MODE_NEXT);
   monthBtn.classList.toggle('is-active', mode === MODE_MONTH);
+
+  const agenda = document.querySelector('.agenda');
+  agenda.classList.toggle('is-month', mode === MODE_MONTH);
 
   autoBtn.setAttribute('aria-pressed', mode === MODE_AUTO ? 'true' : 'false');
   todayBtn.setAttribute('aria-pressed', mode === MODE_TODAY ? 'true' : 'false');
@@ -212,6 +228,109 @@ function renderAgenda(events) {
   }
 }
 
+function toLocalDayKey(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function renderMonthBoard(events) {
+  const wrap = document.getElementById('tideline');
+  wrap.innerHTML = '';
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const todayKey = toLocalDayKey(now);
+
+  const firstDay = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const leadingEmpty = firstDay.getDay();
+
+  const monthEvents = new Map();
+  for (const ev of events) {
+    const d = new Date(ev.start);
+    if (d.getFullYear() !== year || d.getMonth() !== month) continue;
+    const key = toLocalDayKey(d);
+    if (!monthEvents.has(key)) monthEvents.set(key, []);
+    monthEvents.get(key).push(ev);
+  }
+
+  const board = document.createElement('section');
+  board.className = 'month-board';
+
+  const weekdays = document.createElement('div');
+  weekdays.className = 'month-weekdays';
+  for (const day of WEEKDAY_SHORT) {
+    const item = document.createElement('div');
+    item.className = 'month-weekday';
+    item.textContent = day;
+    weekdays.appendChild(item);
+  }
+  board.appendChild(weekdays);
+
+  const grid = document.createElement('div');
+  grid.className = 'month-grid';
+
+  const totalCells = 42;
+  let renderedDay = 1;
+
+  for (let cellIndex = 0; cellIndex < totalCells; cellIndex += 1) {
+    const cell = document.createElement('article');
+    cell.className = 'month-cell';
+
+    const isOutsideMonth = cellIndex < leadingEmpty || renderedDay > daysInMonth;
+    if (isOutsideMonth) {
+      cell.classList.add('is-empty');
+      grid.appendChild(cell);
+      continue;
+    }
+
+    const dayDate = new Date(year, month, renderedDay);
+    const dayKey = toLocalDayKey(dayDate);
+    const dayEvents = monthEvents.get(dayKey) || [];
+
+    if (dayKey === todayKey) cell.classList.add('is-today');
+    if (dayDate < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+      cell.classList.add('is-past');
+    }
+
+    const number = document.createElement('div');
+    number.className = 'month-day-number';
+    number.textContent = String(renderedDay);
+    cell.appendChild(number);
+
+    const eventsWrap = document.createElement('div');
+    eventsWrap.className = 'month-events';
+
+    const maxVisible = 2;
+    for (let i = 0; i < Math.min(maxVisible, dayEvents.length); i += 1) {
+      const ev = dayEvents[i];
+      const chip = document.createElement('div');
+      chip.className = `month-chip person-${ev.person}`;
+      chip.textContent = ev.allDay
+        ? `${ev.label}: ${ev.title}`
+        : `${formatTime(ev.start, false)} ${ev.title}`;
+      eventsWrap.appendChild(chip);
+    }
+
+    if (dayEvents.length > maxVisible) {
+      const more = document.createElement('div');
+      more.className = 'month-more';
+      more.textContent = `+${dayEvents.length - maxVisible} more`;
+      eventsWrap.appendChild(more);
+    }
+
+    cell.appendChild(eventsWrap);
+    grid.appendChild(cell);
+    renderedDay += 1;
+  }
+
+  board.appendChild(grid);
+  wrap.appendChild(board);
+}
+
 function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
@@ -232,7 +351,11 @@ async function loadEvents() {
     }
 
     renderLegend(data.events);
-    renderAgenda(data.events);
+    if (currentRangeMode === MODE_MONTH) {
+      renderMonthBoard(data.events);
+    } else {
+      renderAgenda(data.events);
+    }
 
     const syncedAt = new Date(data.generatedAt);
     statusLine.textContent = `Updated ${formatTime(syncedAt.toISOString(), false)} · ${modeTitle(currentRangeMode)}`;

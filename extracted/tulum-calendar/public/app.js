@@ -9,9 +9,12 @@ const MODE_AUTO = 'auto';
 const MODE_TODAY = 'today';
 const MODE_NEXT = 'next';
 const MODE_MONTH = 'month';
-const ALLOWED_MODES = [MODE_AUTO, MODE_TODAY, MODE_NEXT, MODE_MONTH];
+const ALLOWED_MODES = [MODE_AUTO, MODE_NEXT, MODE_MONTH];
+const CACHE_TTL_MS = 90 * 1000;
 let currentRangeMode = MODE_AUTO;
 let lastAutoResolvedMode = '';
+let latestLoadToken = 0;
+const eventsCache = new Map();
 
 // Ambient line rotates by day-of-week to keep the wall display feeling alive
 // without needing a live weather API. Tulum / coastal wellness register.
@@ -119,6 +122,7 @@ function renderLegend(events) {
 function readSavedRangeMode() {
   try {
     const raw = localStorage.getItem(RANGE_MODE_STORAGE_KEY);
+    if (raw === MODE_TODAY) return MODE_AUTO;
     if (ALLOWED_MODES.indexOf(raw) !== -1) return raw;
   } catch (err) {
     // localStorage may be blocked in hardened browser setups; default safely.
@@ -168,12 +172,10 @@ function applyRangeSelection(mode) {
   currentRangeMode = mode;
 
   const autoBtn = document.getElementById('rangeAuto');
-  const todayBtn = document.getElementById('rangeToday');
   const nextBtn = document.getElementById('rangeNext');
   const monthBtn = document.getElementById('rangeMonth');
 
   autoBtn.classList.toggle('is-active', mode === MODE_AUTO);
-  todayBtn.classList.toggle('is-active', mode === MODE_TODAY);
   nextBtn.classList.toggle('is-active', mode === MODE_NEXT);
   monthBtn.classList.toggle('is-active', mode === MODE_MONTH);
 
@@ -181,7 +183,6 @@ function applyRangeSelection(mode) {
   agenda.classList.toggle('is-month', mode === MODE_MONTH);
 
   autoBtn.setAttribute('aria-pressed', mode === MODE_AUTO ? 'true' : 'false');
-  todayBtn.setAttribute('aria-pressed', mode === MODE_TODAY ? 'true' : 'false');
   nextBtn.setAttribute('aria-pressed', mode === MODE_NEXT ? 'true' : 'false');
   monthBtn.setAttribute('aria-pressed', mode === MODE_MONTH ? 'true' : 'false');
 
@@ -371,30 +372,104 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-async function loadEvents() {
-  const statusLine = document.getElementById('statusLine');
-  try {
-    statusLine.textContent = 'Syncing...';
+function setCache(days, data) {
+  eventsCache.set(String(days), {
+    at: Date.now(),
+    data,
+  });
+}
 
-    const days = resolveDaysForMode(currentRangeMode);
-    const res = await fetch(`/api/events?days=${days}`);
-    const data = await res.json();
+function getCache(days) {
+  return eventsCache.get(String(days)) || null;
+}
+
+function isCacheFresh(cacheEntry) {
+  return !!cacheEntry && Date.now() - cacheEntry.at < CACHE_TTL_MS;
+}
+
+function renderEventsForCurrentMode(events) {
+  renderLegend(events);
+  if (currentRangeMode === MODE_MONTH) {
+    renderMonthBoard(events);
+  } else {
+    renderAgenda(events);
+  }
+}
+
+function updateStatusFromGeneratedAt(generatedAt) {
+  const statusLine = document.getElementById('statusLine');
+  const syncedAt = new Date(generatedAt);
+  statusLine.textContent = `Updated ${formatTime(syncedAt.toISOString(), false)} · ${modeTitle(currentRangeMode)}`;
+}
+
+async function fetchEventsFromApi(days) {
+  const res = await fetch(`/api/events?days=${days}`);
+  if (!res.ok) {
+    throw new Error(`Request failed with status ${res.status}`);
+  }
+  return res.json();
+}
+
+async function prefetchMode(mode) {
+  const days = resolveDaysForMode(mode);
+  const cached = getCache(days);
+  if (isCacheFresh(cached)) return;
+
+  try {
+    const data = await fetchEventsFromApi(days);
+    setCache(days, data);
+  } catch (err) {
+    // Prefetch is best-effort and should not affect visible UI.
+  }
+}
+
+async function prefetchOtherModes() {
+  const modes = [MODE_AUTO, MODE_NEXT, MODE_MONTH];
+  await Promise.all(
+    modes
+      .filter((mode) => mode !== currentRangeMode)
+      .map((mode) => prefetchMode(mode))
+  );
+}
+
+async function loadEvents(options = {}) {
+  const { preferCache = true, forceFresh = false } = options;
+  const statusLine = document.getElementById('statusLine');
+  const loadToken = ++latestLoadToken;
+  const days = resolveDaysForMode(currentRangeMode);
+
+  const cached = getCache(days);
+
+  try {
+    if (preferCache && cached) {
+      renderEventsForCurrentMode(cached.data.events);
+      updateStatusFromGeneratedAt(cached.data.generatedAt);
+
+      if (!forceFresh && isCacheFresh(cached)) {
+        return;
+      }
+    } else {
+      statusLine.textContent = 'Syncing...';
+    }
+
+    const data = await fetchEventsFromApi(days);
+    setCache(days, data);
+
+    if (loadToken !== latestLoadToken) return;
 
     if (data.errors && data.errors.length > 0) {
       console.warn('Calendar feed warnings:', data.errors);
     }
 
-    renderLegend(data.events);
-    if (currentRangeMode === MODE_MONTH) {
-      renderMonthBoard(data.events);
-    } else {
-      renderAgenda(data.events);
-    }
-
-    const syncedAt = new Date(data.generatedAt);
-    statusLine.textContent = `Updated ${formatTime(syncedAt.toISOString(), false)} · ${modeTitle(currentRangeMode)}`;
+    renderEventsForCurrentMode(data.events);
+    updateStatusFromGeneratedAt(data.generatedAt);
   } catch (err) {
+    if (loadToken !== latestLoadToken) return;
     console.error('Failed to load events', err);
+    if (cached) {
+      statusLine.textContent = `Offline copy · ${modeTitle(currentRangeMode)}`;
+      return;
+    }
     statusLine.textContent = 'Connection trouble — retrying soon';
   }
 }
@@ -406,13 +481,17 @@ function init() {
   wireRangeToggle();
 
   renderClockAndDate();
-  loadEvents();
+  loadEvents({ preferCache: true, forceFresh: true });
+  prefetchOtherModes();
 
   setInterval(() => {
     renderClockAndDate();
     maybeRefreshAutoModeTitle();
   }, 30000); // refresh clock every 30s and update auto mode when time window shifts
-  setInterval(loadEvents, 5 * 60000); // refresh calendar data every 5 min
+  setInterval(() => {
+    loadEvents({ preferCache: true, forceFresh: true });
+    prefetchOtherModes();
+  }, 5 * 60000); // refresh calendar data every 5 min
 }
 
 init();

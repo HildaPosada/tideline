@@ -49,6 +49,34 @@ function formatTime(iso, allDay) {
   return `${displayHour}:${minutes} ${ampm}`;
 }
 
+function simplifyEventTitle(rawTitle) {
+  if (!rawTitle) return 'Untitled';
+
+  let title = String(rawTitle).replace(/\s+/g, ' ').trim();
+
+  // Remove leading emoji/symbol clutter often present in calendar names.
+  title = title.replace(/^[^\p{L}\p{N}]+/u, '').trim();
+
+  // Google invite titles can include verbose participant tails after pipes.
+  if (title.includes('|')) {
+    const [head] = title.split('|');
+    if (head && head.trim().length >= 4) title = head.trim();
+  }
+
+  // Common "topic - attendee names" pattern: keep the topic segment.
+  if (title.includes(' - ')) {
+    const [head] = title.split(' - ');
+    if (head && head.trim().length >= 4) title = head.trim();
+  }
+
+  return title || 'Untitled';
+}
+
+function shortenText(str, maxLen) {
+  if (str.length <= maxLen) return str;
+  return `${str.slice(0, Math.max(0, maxLen - 1)).trim()}…`;
+}
+
 function dayLabel(date) {
   const today = new Date();
   const tomorrow = new Date();
@@ -215,11 +243,16 @@ function renderAgenda(events) {
     dayDiv.appendChild(label);
 
     for (const ev of group.events) {
+      const cleanTitle = simplifyEventTitle(ev.title);
+      const locationPart = ev.location ? `<div class="event-location">${escapeHtml(ev.location)}</div>` : '';
       const row = document.createElement('div');
       row.className = `event-row person-${ev.person}`;
       row.innerHTML = `
         <span class="event-time">${formatTime(ev.start, ev.allDay)}</span>
-        <span class="event-title">${escapeHtml(ev.title)}${ev.location ? `<span class="event-meta"> · ${escapeHtml(ev.location)}</span>` : ''}</span>
+        <span class="event-main">
+          <span class="event-title" title="${escapeHtml(ev.title)}">${escapeHtml(cleanTitle)}</span>
+          ${locationPart}
+        </span>
       `;
       dayDiv.appendChild(row);
     }
@@ -307,11 +340,12 @@ function renderMonthBoard(events) {
     const maxVisible = 2;
     for (let i = 0; i < Math.min(maxVisible, dayEvents.length); i += 1) {
       const ev = dayEvents[i];
+      const cleanTitle = shortenText(simplifyEventTitle(ev.title), 20);
       const chip = document.createElement('div');
       chip.className = `month-chip person-${ev.person}`;
       chip.textContent = ev.allDay
-        ? `${ev.label}: ${ev.title}`
-        : `${formatTime(ev.start, false)} ${ev.title}`;
+        ? `${ev.label}: ${cleanTitle}`
+        : `${formatTime(ev.start, false)} ${cleanTitle}`;
       eventsWrap.appendChild(chip);
     }
 

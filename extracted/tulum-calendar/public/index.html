@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Tideline — Family Calendar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="grain"></div>
+
+  <main class="layout">
+
+    <!-- LEFT: the hero panel — today, anchored and calm -->
+    <section class="hero">
+      <p class="hero-eyebrow" id="dayName">Thursday</p>
+      <h1 class="hero-date" id="dayNumber">18</h1>
+      <p class="hero-month" id="monthYear">June 2026</p>
+
+      <div class="hero-divider" aria-hidden="true">
+        <span class="hero-divider-dot"></span>
+      </div>
+
+      <p class="hero-ambient" id="ambientLine">Low tide at dawn, high tide by evening.</p>
+
+      <div class="hero-clock" id="clock">10:42</div>
+
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <!-- RIGHT: the tideline agenda -->
+    <section class="agenda">
+      <header class="agenda-header">
+        <h2 class="agenda-title">The next few days</h2>
+        <p class="agenda-status" id="statusLine">Syncing…</p>
+      </header>
+
+      <div class="tideline-wrap" id="tideline">
+        <!-- populated by app.js -->
+      </div>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

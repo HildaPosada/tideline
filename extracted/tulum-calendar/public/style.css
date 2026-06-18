@@ -159,6 +159,10 @@ body {
   color: rgba(250, 246, 240, 0.85);
 }
 
+.legend-item.is-muted {
+  opacity: 0.58;
+}
+
 .legend-dot {
   width: 10px;
   height: 10px;

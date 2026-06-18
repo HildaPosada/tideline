@@ -132,6 +132,12 @@ module.exports = async (req, res) => {
 
   res.status(200).json({
     events: mergedResults,
+    calendars: FEEDS.map((feed) => ({
+      id: feed.id,
+      label: feed.label,
+      color: feed.color,
+      configured: !!feed.url,
+    })),
     errors,
     generatedAt: new Date().toISOString(),
   });

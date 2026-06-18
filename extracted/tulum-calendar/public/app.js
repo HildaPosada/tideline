@@ -104,17 +104,44 @@ function groupByDay(events) {
   return Array.from(groups.values()).sort((a, b) => a.date - b.date);
 }
 
-function renderLegend(events) {
+function renderLegend(events, calendars = []) {
   const people = new Map();
-  for (const ev of events) {
-    if (!people.has(ev.person)) people.set(ev.person, { label: ev.label, color: ev.color });
+
+  for (const calendar of calendars) {
+    people.set(calendar.id, { label: calendar.label, color: calendar.color, configured: calendar.configured !== false });
   }
+
+  for (const ev of events) {
+    if (!people.has(ev.person)) {
+      people.set(ev.person, { label: ev.label, color: ev.color, configured: true });
+    }
+  }
+
+  const eventCounts = new Map();
+  for (const ev of events) {
+    eventCounts.set(ev.person, (eventCounts.get(ev.person) || 0) + 1);
+  }
+
+  if ((eventCounts.get('shared') || 0) > 0 && !people.has('shared')) {
+    people.set('shared', { label: 'Shared', color: 'shared', configured: true });
+  }
+
   const legend = document.getElementById('legend');
   legend.innerHTML = '';
-  for (const [, p] of people) {
+  const order = ['hp', 'kim', 'shared'];
+  const entries = Array.from(people.entries()).sort((a, b) => {
+    const ai = order.indexOf(a[0]);
+    const bi = order.indexOf(b[0]);
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+
+  for (const [personId, p] of entries) {
+    const count = eventCounts.get(personId) || 0;
+    const isInactive = personId !== 'shared' && count === 0;
     const item = document.createElement('div');
-    item.className = 'legend-item';
-    item.innerHTML = `<span class="legend-dot ${p.color}"></span><span>${p.label}</span>`;
+    item.className = `legend-item${isInactive ? ' is-muted' : ''}`;
+    const suffix = personId === 'shared' || !isInactive ? '' : ' (none in this range)';
+    item.innerHTML = `<span class="legend-dot ${p.color}"></span><span>${p.label}${suffix}</span>`;
     legend.appendChild(item);
   }
 }
@@ -387,8 +414,8 @@ function isCacheFresh(cacheEntry) {
   return !!cacheEntry && Date.now() - cacheEntry.at < CACHE_TTL_MS;
 }
 
-function renderEventsForCurrentMode(events) {
-  renderLegend(events);
+function renderEventsForCurrentMode(events, calendars) {
+  renderLegend(events, calendars);
   if (currentRangeMode === MODE_MONTH) {
     renderMonthBoard(events);
   } else {
@@ -442,7 +469,7 @@ async function loadEvents(options = {}) {
 
   try {
     if (preferCache && cached) {
-      renderEventsForCurrentMode(cached.data.events);
+      renderEventsForCurrentMode(cached.data.events, cached.data.calendars || []);
       updateStatusFromGeneratedAt(cached.data.generatedAt);
 
       if (!forceFresh && isCacheFresh(cached)) {
@@ -461,7 +488,7 @@ async function loadEvents(options = {}) {
       console.warn('Calendar feed warnings:', data.errors);
     }
 
-    renderEventsForCurrentMode(data.events);
+    renderEventsForCurrentMode(data.events, data.calendars || []);
     updateStatusFromGeneratedAt(data.generatedAt);
   } catch (err) {
     if (loadToken !== latestLoadToken) return;

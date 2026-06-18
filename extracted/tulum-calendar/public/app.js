@@ -9,7 +9,7 @@ const MODE_AUTO = 'auto';
 const MODE_TODAY = 'today';
 const MODE_NEXT = 'next';
 const MODE_MONTH = 'month';
-const ALLOWED_MODES = [MODE_AUTO, MODE_NEXT, MODE_MONTH];
+const ALLOWED_MODES = [MODE_AUTO, MODE_MONTH];
 const CACHE_TTL_MS = 8 * 60 * 1000;
 let currentRangeMode = MODE_AUTO;
 let lastAutoResolvedMode = '';
@@ -162,6 +162,7 @@ function readSavedRangeMode() {
   try {
     const raw = localStorage.getItem(RANGE_MODE_STORAGE_KEY);
     if (raw === MODE_TODAY) return MODE_AUTO;
+    if (raw === MODE_NEXT) return MODE_AUTO;
     if (ALLOWED_MODES.indexOf(raw) !== -1) return raw;
   } catch (err) {
     // localStorage may be blocked in hardened browser setups; default safely.
@@ -376,7 +377,7 @@ function applyRangeSelection(mode) {
   const monthBtn = document.getElementById('rangeMonth');
 
   autoBtn.classList.toggle('is-active', mode === MODE_AUTO);
-  nextBtn.classList.toggle('is-active', mode === MODE_NEXT);
+  if (nextBtn) nextBtn.classList.toggle('is-active', mode === MODE_NEXT);
   monthBtn.classList.toggle('is-active', mode === MODE_MONTH);
 
   const agenda = document.querySelector('.agenda');
@@ -387,7 +388,7 @@ function applyRangeSelection(mode) {
   if (availabilityEl) availabilityEl.style.display = mode === MODE_AUTO ? '' : 'none';
 
   autoBtn.setAttribute('aria-pressed', mode === MODE_AUTO ? 'true' : 'false');
-  nextBtn.setAttribute('aria-pressed', mode === MODE_NEXT ? 'true' : 'false');
+  if (nextBtn) nextBtn.setAttribute('aria-pressed', mode === MODE_NEXT ? 'true' : 'false');
   monthBtn.setAttribute('aria-pressed', mode === MODE_MONTH ? 'true' : 'false');
 
   document.querySelector('.agenda-title').textContent = modeTitle(mode);
@@ -477,16 +478,22 @@ function renderAgenda(events) {
 
 function getAutoAgendaEvents(events) {
   const resolved = getAutoResolvedMode();
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
 
   if (resolved === MODE_TODAY) {
-    const todayKey = toLocalDayKey(start);
-    return events.filter((ev) => toLocalDayKey(new Date(ev.start)) === todayKey);
+    const end = new Date(start);
+    end.setHours(23, 59, 59, 999);
+    return events.filter((ev) => {
+      const d = new Date(ev.start);
+      return d >= start && d <= end;
+    });
   }
 
+  // Match the old "Next 3 days" tab semantics from the API (days=3):
+  // include today plus the next 3 calendar days.
   const end = new Date(start);
-  end.setDate(end.getDate() + 2); // Inclusive 3-day window: today + next 2 days.
+  end.setDate(end.getDate() + 3);
   end.setHours(23, 59, 59, 999);
 
   return events.filter((ev) => {

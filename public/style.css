@@ -167,6 +167,10 @@ body {
 
 .legend-dot.clay { background: var(--clay); }
 .legend-dot.teal { background: var(--sage); border: 1.5px solid rgba(250, 246, 240, 0.5); }
+.legend-dot.shared {
+  background: linear-gradient(90deg, var(--clay) 0 50%, var(--sage) 50% 100%);
+  border: 1px solid rgba(250, 246, 240, 0.35);
+}
 
 /* ===========================================================
    AGENDA — right panel, the "tideline"
@@ -374,6 +378,12 @@ body {
   border-color: #a8cdc6;
 }
 
+.month-chip.person-shared {
+  color: #2b3e3b;
+  background: linear-gradient(90deg, #f2d8ca 0 50%, #d8ece8 50% 100%);
+  border-color: #c9c3b8;
+}
+
 .month-more {
   font-size: 0.6rem;
   color: var(--sage);
@@ -429,6 +439,10 @@ body {
 
 .event-row.person-hp::before { background: var(--clay); }
 .event-row.person-kim::before { background: var(--teal); box-shadow: 0 0 0 1.5px var(--white-soft), 0 0 0 2.5px var(--teal); }
+.event-row.person-shared::before {
+  background: linear-gradient(180deg, var(--clay) 0 50%, var(--teal) 50% 100%);
+  box-shadow: 0 0 0 1.5px var(--white-soft), 0 0 0 2.5px rgba(61, 92, 86, 0.45);
+}
 
 .event-time {
   font-family: var(--font-body);

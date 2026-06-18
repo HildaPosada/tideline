@@ -39,6 +39,50 @@ function expandOccurrences(vevent, rangeStart, rangeEnd) {
   return occurrences;
 }
 
+function normalizeTitle(title) {
+  return String(title || '')
+    .toLowerCase()
+    .replace(/^\W+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeLocation(location) {
+  return String(location || '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function mergeDuplicateEvents(events) {
+  const mergedByKey = new Map();
+
+  for (const ev of events) {
+    const key = [
+      ev.start,
+      ev.end,
+      ev.allDay ? '1' : '0',
+      normalizeTitle(ev.title),
+      normalizeLocation(ev.location),
+    ].join('|');
+
+    const existing = mergedByKey.get(key);
+    if (!existing) {
+      mergedByKey.set(key, { ...ev });
+      continue;
+    }
+
+    // If the same event appears on both calendars, collapse to one shared item.
+    if (existing.person !== ev.person) {
+      existing.person = 'shared';
+      existing.label = 'Shared';
+      existing.color = 'shared';
+    }
+  }
+
+  return Array.from(mergedByKey.values());
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=60');
 
@@ -83,10 +127,11 @@ module.exports = async (req, res) => {
     })
   );
 
-  results.sort((a, b) => new Date(a.start) - new Date(b.start));
+  const mergedResults = mergeDuplicateEvents(results);
+  mergedResults.sort((a, b) => new Date(a.start) - new Date(b.start));
 
   res.status(200).json({
-    events: results,
+    events: mergedResults,
     errors,
     generatedAt: new Date().toISOString(),
   });

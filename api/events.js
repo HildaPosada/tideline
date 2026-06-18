@@ -107,12 +107,21 @@ function mergeDuplicateEvents(events) {
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=60');
 
-  const requestedDays = Number.parseInt(req.query.days || '3', 10);
-  const safeDays = Number.isNaN(requestedDays) ? 3 : requestedDays;
-  const daysAhead = Math.max(0, Math.min(safeDays, 31));
-  const requestedStart = parseStartDate(req.query.start);
-  const rangeStart = startOfDay(requestedStart || new Date());
-  const rangeEnd = endOfDay(new Date(rangeStart.getTime() + daysAhead * 86400000));
+  const monthView = req.query.month === 'current';
+
+  let rangeStart, rangeEnd;
+  if (monthView) {
+    const now = new Date();
+    rangeStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    rangeEnd = endOfDay(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+  } else {
+    const requestedDays = Number.parseInt(req.query.days || '3', 10);
+    const safeDays = Number.isNaN(requestedDays) ? 3 : requestedDays;
+    const daysAhead = Math.max(0, Math.min(safeDays, 35));
+    const requestedStart = parseStartDate(req.query.start);
+    rangeStart = startOfDay(requestedStart || new Date());
+    rangeEnd = endOfDay(new Date(rangeStart.getTime() + daysAhead * 86400000));
+  }
 
   const results = [];
   const errors = [];

@@ -249,16 +249,16 @@ function modeTitle(mode) {
 }
 
 function busyLevel(count) {
-  if (count >= 3) return 'busy';
-  if (count >= 1) return 'medium';
-  return 'free';
+  if (count >= 3) return 'clay';
+  if (count >= 1) return 'sage';
+  return 'sand';
 }
 
-function busyColor(level) {
-  if (level === 'busy') return 'var(--busy-high)';
-  if (level === 'medium') return 'var(--busy-medium)';
-  return 'var(--busy-free)';
-}
+const LEVEL_COLOR = {
+  sand: 'var(--sand-deep)',
+  sage: 'var(--sage)',
+  clay: 'var(--clay)',
+};
 
 function toDayKey(date) {
   const y = date.getFullYear();
@@ -295,69 +295,73 @@ function buildDailyBusyMap(events, year, month) {
   return byDay;
 }
 
-function renderHeroAvailabilityCalendar(events) {
-  const card = document.getElementById('heroCalendarCard');
-  const grid = document.getElementById('heroCalendarGrid');
-  const title = document.getElementById('heroCalendarTitle');
-  if (!card || !grid || !title) return;
+const WEEKDAY_LABELS_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+function renderAvailability(events) {
+  const container = document.getElementById('availability');
+  if (!container) return;
 
   if (currentRangeMode !== MODE_AUTO) {
-    card.classList.add('is-hidden');
+    container.style.display = 'none';
     return;
   }
-
-  card.classList.remove('is-hidden');
+  container.style.display = '';
 
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
   const todayKey = toDayKey(now);
-  title.textContent = `${MONTH_NAMES[month]} Availability`;
-
-  const firstDay = new Date(year, month, 1);
-  const leading = firstDay.getDay();
+  const monthName = MONTH_NAMES[month];
   const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const leading = new Date(year, month, 1).getDay();
   const busyByDay = buildDailyBusyMap(events, year, month);
 
-  grid.innerHTML = '';
-  let dayNumber = 1;
+  let html = `
+    <div class="availability-header">
+      <span class="availability-title">${monthName} availability</span>
+      <span class="availability-key">Hp \\ Kim</span>
+    </div>
+    <div class="availability-grid">
+  `;
+
+  for (const label of WEEKDAY_LABELS_SHORT) {
+    html += `<div class="availability-weekday">${label}</div>`;
+  }
 
   for (let i = 0; i < 42; i += 1) {
-    const cell = document.createElement('div');
-    cell.className = 'hero-cal-cell';
+    const dayNumber = i - leading + 1;
+    const outsideMonth = i < leading || dayNumber > daysInMonth;
 
-    const isEmpty = i < leading || dayNumber > daysInMonth;
-    if (isEmpty) {
-      cell.classList.add('is-empty');
-      grid.appendChild(cell);
+    if (outsideMonth) {
+      html += '<div class="availability-cell empty"></div>';
       continue;
     }
 
-    const date = new Date(year, month, dayNumber);
-    const key = toDayKey(date);
-    if (key === todayKey) cell.classList.add('is-today');
-
+    const dayDate = new Date(year, month, dayNumber);
+    const key = toDayKey(dayDate);
     const counts = busyByDay.get(key) || { hp: 0, kim: 0 };
     const hpLevel = busyLevel(counts.hp);
     const kimLevel = busyLevel(counts.kim);
+    const isToday = key === todayKey;
 
-    const fill = document.createElement('div');
-    fill.className = 'hero-cal-fill';
-    fill.style.background = `linear-gradient(to right, ${busyColor(hpLevel)} 0 50%, ${busyColor(kimLevel)} 50% 100%)`;
-    cell.appendChild(fill);
+    const style = `--cell-hp:${LEVEL_COLOR[hpLevel]};--cell-kim:${LEVEL_COLOR[kimLevel]};`;
+    const todayClass = isToday ? ' is-today' : '';
+    const tipHp = `${hpLevel[0].toUpperCase()}${hpLevel.slice(1)} (${counts.hp})`;
+    const tipKim = `${kimLevel[0].toUpperCase()}${kimLevel.slice(1)} (${counts.kim})`;
 
-    const num = document.createElement('span');
-    num.className = 'hero-cal-day';
-    num.textContent = String(dayNumber);
-    cell.appendChild(num);
-
-    const hpText = hpLevel[0].toUpperCase() + hpLevel.slice(1);
-    const kimText = kimLevel[0].toUpperCase() + kimLevel.slice(1);
-    cell.title = `Hp: ${hpText} (${counts.hp}) | Kim: ${kimText} (${counts.kim})`;
-
-    grid.appendChild(cell);
-    dayNumber += 1;
+    html += `<div class="availability-cell${todayClass}" style="${style}" title="Hp: ${tipHp} | Kim: ${tipKim}"><span>${dayNumber}</span></div>`;
   }
+
+  html += `
+    </div>
+    <div class="availability-legend">
+      <div class="availability-legend-item"><span class="availability-legend-swatch" style="background:var(--sand-deep)"></span>Free</div>
+      <div class="availability-legend-item"><span class="availability-legend-swatch" style="background:var(--sage)"></span>Some plans</div>
+      <div class="availability-legend-item"><span class="availability-legend-swatch" style="background:var(--clay)"></span>Full day</div>
+    </div>
+  `;
+
+  container.innerHTML = html;
 }
 
 function applyRangeSelection(mode) {
@@ -366,7 +370,6 @@ function applyRangeSelection(mode) {
   const autoBtn = document.getElementById('rangeAuto');
   const nextBtn = document.getElementById('rangeNext');
   const monthBtn = document.getElementById('rangeMonth');
-  const heroCalendarCard = document.getElementById('heroCalendarCard');
 
   autoBtn.classList.toggle('is-active', mode === MODE_AUTO);
   nextBtn.classList.toggle('is-active', mode === MODE_NEXT);
@@ -374,9 +377,10 @@ function applyRangeSelection(mode) {
 
   const agenda = document.querySelector('.agenda');
   agenda.classList.toggle('is-month', mode === MODE_MONTH);
-  if (heroCalendarCard) {
-    heroCalendarCard.classList.toggle('is-hidden', mode !== MODE_AUTO);
-  }
+
+  // Availability widget visible only in Auto mode
+  const availabilityEl = document.getElementById('availability');
+  if (availabilityEl) availabilityEl.style.display = mode === MODE_AUTO ? '' : 'none';
 
   autoBtn.setAttribute('aria-pressed', mode === MODE_AUTO ? 'true' : 'false');
   nextBtn.setAttribute('aria-pressed', mode === MODE_NEXT ? 'true' : 'false');
@@ -662,12 +666,6 @@ function isCacheFresh(cacheEntry) {
 
 function renderEventsForCurrentMode(events, calendars) {
   renderLegend(events, calendars);
-  const currentMonthRequest = getCurrentMonthRequest();
-  const monthCached = getCache(currentMonthRequest.key);
-  const availabilityEvents = currentRangeMode === MODE_AUTO && monthCached
-    ? monthCached.data.events
-    : events;
-  renderHeroAvailabilityCalendar(availabilityEvents);
   if (currentRangeMode === MODE_MONTH) {
     renderMonthBoard(events);
   } else {
@@ -701,10 +699,6 @@ async function prefetchMode(mode) {
   try {
     const data = await fetchEventsFromApi(request);
     setCache(request.key, data);
-
-    if (mode === MODE_MONTH && currentRangeMode === MODE_AUTO) {
-      renderHeroAvailabilityCalendar(data.events);
-    }
   } catch (err) {
     // Prefetch is best-effort and should not affect visible UI.
   }
@@ -771,6 +765,14 @@ async function loadEvents(options = {}) {
     updateStatusFromGeneratedAt(data.generatedAt);
     if (currentRangeMode === MODE_MONTH) {
       prefetchAdjacentMonths();
+    }
+    if (currentRangeMode === MODE_AUTO) {
+      fetch('/api/events?month=current')
+        .then((r) => r.json())
+        .then((d) => {
+          if (loadToken === latestLoadToken) renderAvailability(d.events);
+        })
+        .catch(() => {});
     }
   } catch (err) {
     if (loadToken !== latestLoadToken) return;

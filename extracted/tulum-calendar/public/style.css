@@ -19,9 +19,6 @@
   --font-body: 'Inter', sans-serif;
 
   --radius: 18px;
-  --busy-free: #8caf92;
-  --busy-medium: #d4a55d;
-  --busy-high: #cb655e;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -147,103 +144,111 @@ body {
   letter-spacing: 0.04em;
 }
 
-.hero-calendar-card {
-  margin-top: 1.2rem;
-  border-radius: 14px;
-  border: 1px solid rgba(250, 246, 240, 0.24);
-  background: rgba(250, 246, 240, 0.08);
-  backdrop-filter: blur(2px);
-  padding: 0.75rem;
+/* ===========================================================
+   AVAILABILITY — calm heatmap in hero panel.
+   Uses sand → sage → clay scale instead of stoplight.
+   No card chrome: sits flush on the teal panel.
+   Diagonal split per cell: Hp top-left, Kim bottom-right.
+   =========================================================== */
+
+.availability {
+  margin-top: 2.5rem;
 }
 
-.hero-calendar-card.is-hidden {
-  display: none;
-}
-
-.hero-calendar-head {
+.availability-header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 0.7rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.9rem;
 }
 
-.hero-calendar-title {
+.availability-title {
   font-family: var(--font-body);
-  font-size: 0.88rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  color: rgba(250, 246, 240, 0.92);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sage);
 }
 
-.hero-calendar-subtitle {
+.availability-key {
   font-size: 0.72rem;
-  color: rgba(250, 246, 240, 0.62);
+  color: rgba(250, 246, 240, 0.65);
 }
 
-.hero-calendar-grid {
+.availability-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0.2rem;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
 }
 
-.hero-cal-cell {
-  border-radius: 6px;
-  height: 22px;
-  border: 1px solid rgba(250, 246, 240, 0.17);
-  position: relative;
-  overflow: hidden;
-}
-
-.hero-cal-cell.is-empty {
-  opacity: 0.14;
-}
-
-.hero-cal-cell.is-today {
-  border-color: rgba(250, 246, 240, 0.85);
-  box-shadow: 0 0 0 1px rgba(250, 246, 240, 0.3);
-}
-
-.hero-cal-fill {
-  position: absolute;
-  inset: 0;
-}
-
-.hero-cal-day {
-  position: absolute;
-  right: 3px;
-  bottom: 1px;
+.availability-weekday {
   font-size: 0.6rem;
-  color: rgba(43, 43, 38, 0.85);
-  text-shadow: 0 1px 0 rgba(250, 246, 240, 0.45);
-  font-weight: 600;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-align: center;
+  color: rgba(250, 246, 240, 0.35);
+  padding-bottom: 2px;
 }
 
-.hero-calendar-legend {
-  margin-top: 0.5rem;
+.availability-cell {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 6px;
   display: flex;
-  gap: 0.55rem;
-  flex-wrap: wrap;
-  font-size: 0.68rem;
-  color: rgba(250, 246, 240, 0.72);
-}
-
-.hero-calendar-legend span {
-  display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  justify-content: center;
+  font-size: 0.68rem;
+  font-weight: 600;
+  overflow: hidden;
+  background: linear-gradient(
+    135deg,
+    var(--cell-hp, var(--sand-deep)) 50%,
+    var(--cell-kim, var(--sand-deep)) 50%
+  );
 }
 
-.busy-dot {
-  width: 8px;
-  height: 8px;
+.availability-cell.empty { visibility: hidden; }
+
+.availability-cell.is-today {
+  box-shadow: 0 0 0 1.5px var(--teal), 0 0 0 3px var(--clay);
+}
+
+.availability-cell span {
+  position: relative;
+  z-index: 1;
+  background: rgba(250, 246, 240, 0.55);
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--charcoal);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.availability-legend {
+  display: flex;
+  gap: 1.1rem;
+  margin-top: 0.8rem;
+  font-size: 0.72rem;
+  color: rgba(250, 246, 240, 0.7);
+}
+
+.availability-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.availability-legend-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
   display: inline-block;
 }
-
-.busy-dot.free { background: var(--busy-free); }
-.busy-dot.medium { background: var(--busy-medium); }
-.busy-dot.busy { background: var(--busy-high); }
 
 .legend {
   display: flex;
@@ -480,9 +485,9 @@ body {
   gap: 0.26rem;
 }
 
-.month-cell.density-1 { min-height: 96px; }
-.month-cell.density-2 { min-height: 112px; }
-.month-cell.density-3 { min-height: 132px; }
+.month-cell.density-1 { min-height: 100px; }
+.month-cell.density-2 { min-height: 122px; }
+.month-cell.density-3 { min-height: 158px; }
 
 .month-cell.is-empty {
   background: transparent;
@@ -666,8 +671,7 @@ body {
   }
   html, body { overflow: auto; }
   .hero-date { font-size: 7rem; }
-  .hero-calendar-card { margin-top: 1rem; }
-  .hero-cal-cell { height: 18px; }
+  .availability { margin-top: 1rem; }
   .legend { padding-top: 1.5rem; }
   .agenda {
     padding: 4.5vh 5.2vw;

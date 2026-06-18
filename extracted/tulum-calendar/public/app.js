@@ -475,6 +475,26 @@ function renderAgenda(events) {
   }
 }
 
+function getAutoAgendaEvents(events) {
+  const resolved = getAutoResolvedMode();
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  if (resolved === MODE_TODAY) {
+    const todayKey = toLocalDayKey(start);
+    return events.filter((ev) => toLocalDayKey(new Date(ev.start)) === todayKey);
+  }
+
+  const end = new Date(start);
+  end.setDate(end.getDate() + 2); // Inclusive 3-day window: today + next 2 days.
+  end.setHours(23, 59, 59, 999);
+
+  return events.filter((ev) => {
+    const d = new Date(ev.start);
+    return d >= start && d <= end;
+  });
+}
+
 function toLocalDayKey(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -612,7 +632,7 @@ function renderMonthBoard(events) {
       const chip = document.createElement('div');
       chip.className = `month-chip person-${ev.person}`;
       chip.textContent = ev.allDay
-        ? `${ev.label}: ${cleanTitle}`
+        ? cleanTitle
         : `${formatTime(ev.start, false)} ${cleanTitle}`;
       eventsWrap.appendChild(chip);
     }
@@ -672,6 +692,8 @@ function renderEventsForCurrentMode(events, calendars) {
   renderLegend(events, calendars);
   if (currentRangeMode === MODE_AUTO) {
     renderAvailability(events);
+    renderAgenda(getAutoAgendaEvents(events));
+    return;
   }
   if (currentRangeMode === MODE_MONTH) {
     renderMonthBoard(events);

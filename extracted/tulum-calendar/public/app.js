@@ -16,6 +16,7 @@ let lastAutoResolvedMode = '';
 let latestLoadToken = 0;
 const eventsCache = new Map();
 const PERSON_ORDER = ['hp', 'kim'];
+let viewedMonthCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
 // Ambient line rotates by day-of-week to keep the wall display feeling alive
 // without needing a live weather API. Tulum / coastal wellness register.
@@ -92,6 +93,10 @@ function dayLabel(date) {
   if (isSameDay(date, today)) return 'Today';
   if (isSameDay(date, tomorrow)) return 'Tomorrow';
   return `${DAY_NAMES[date.getDay()]}, ${MONTH_NAMES[date.getMonth()]} ${date.getDate()}`;
+}
+
+function formatMonthYear(date) {
+  return `${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
 }
 
 function groupByDay(events) {
@@ -178,12 +183,56 @@ function getMonthFetchDays() {
   return Math.max(0, Math.min(31, Math.ceil(diffMs / 86400000)));
 }
 
+function getMonthWindowFor(startDate) {
+  const start = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+  const monthEnd = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+  monthEnd.setHours(23, 59, 59, 999);
+
+  const diffMs = monthEnd.getTime() - start.getTime();
+  const days = Math.max(0, Math.min(31, Math.ceil(diffMs / 86400000)));
+
+  return {
+    start,
+    days,
+    startKey: toDayKey(start),
+  };
+}
+
+function getRequestForMode(mode) {
+  if (mode === MODE_MONTH) {
+    const monthWindow = getMonthWindowFor(viewedMonthCursor);
+    return {
+      days: monthWindow.days,
+      start: monthWindow.startKey,
+      key: `month:${monthWindow.startKey}:${monthWindow.days}`,
+    };
+  }
+
+  const days = resolveDaysForMode(mode);
+  return {
+    days,
+    start: null,
+    key: `rolling:${days}`,
+  };
+}
+
+function getCurrentMonthRequest() {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthWindow = getMonthWindowFor(monthStart);
+  return {
+    days: monthWindow.days,
+    start: monthWindow.startKey,
+    key: `month:${monthWindow.startKey}:${monthWindow.days}`,
+  };
+}
+
 function resolveDaysForMode(mode) {
   if (mode === MODE_AUTO) {
     return resolveDaysForMode(getAutoResolvedMode());
   }
   if (mode === MODE_TODAY) return 0;
-  if (mode === MODE_MONTH) return getMonthFetchDays();
+  if (mode === MODE_MONTH) return getMonthWindowFor(viewedMonthCursor).days;
   return 3;
 }
 
@@ -192,7 +241,7 @@ function modeTitle(mode) {
     return getAutoResolvedMode() === MODE_TODAY ? 'Auto (Today)' : 'Auto (Next 3 days)';
   }
   if (mode === MODE_TODAY) return 'Today';
-  if (mode === MODE_MONTH) return 'Month';
+  if (mode === MODE_MONTH) return formatMonthYear(viewedMonthCursor);
   return 'Next 3 days';
 }
 
@@ -418,8 +467,8 @@ function renderMonthBoard(events) {
   wrap.innerHTML = '';
 
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
+  const year = viewedMonthCursor.getFullYear();
+  const month = viewedMonthCursor.getMonth();
   const todayKey = toLocalDayKey(now);
 
   const firstDay = new Date(year, month, 1);
@@ -437,6 +486,48 @@ function renderMonthBoard(events) {
 
   const board = document.createElement('section');
   board.className = 'month-board';
+
+  const header = document.createElement('div');
+  header.className = 'month-board-header';
+
+  const monthTitle = document.createElement('h3');
+  monthTitle.className = 'month-board-title';
+  monthTitle.textContent = formatMonthYear(viewedMonthCursor);
+
+  const nav = document.createElement('div');
+  nav.className = 'month-board-nav';
+
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'month-nav-btn';
+  prevBtn.type = 'button';
+  prevBtn.setAttribute('aria-label', 'Previous month');
+  prevBtn.textContent = '<';
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'month-nav-btn';
+  nextBtn.type = 'button';
+  nextBtn.setAttribute('aria-label', 'Next month');
+  nextBtn.textContent = '>';
+
+  prevBtn.addEventListener('click', async () => {
+    viewedMonthCursor = new Date(viewedMonthCursor.getFullYear(), viewedMonthCursor.getMonth() - 1, 1);
+    applyRangeSelection(MODE_MONTH);
+    await loadEvents({ preferCache: true, forceFresh: false });
+    prefetchMode(MODE_MONTH);
+  });
+
+  nextBtn.addEventListener('click', async () => {
+    viewedMonthCursor = new Date(viewedMonthCursor.getFullYear(), viewedMonthCursor.getMonth() + 1, 1);
+    applyRangeSelection(MODE_MONTH);
+    await loadEvents({ preferCache: true, forceFresh: false });
+    prefetchMode(MODE_MONTH);
+  });
+
+  nav.appendChild(prevBtn);
+  nav.appendChild(nextBtn);
+  header.appendChild(monthTitle);
+  header.appendChild(nav);
+  board.appendChild(header);
 
   const weekdays = document.createElement('div');
   weekdays.className = 'month-weekdays';
@@ -516,15 +607,15 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-function setCache(days, data) {
-  eventsCache.set(String(days), {
+function setCache(requestKey, data) {
+  eventsCache.set(requestKey, {
     at: Date.now(),
     data,
   });
 }
 
-function getCache(days) {
-  return eventsCache.get(String(days)) || null;
+function getCache(requestKey) {
+  return eventsCache.get(requestKey) || null;
 }
 
 function isCacheFresh(cacheEntry) {
@@ -533,8 +624,8 @@ function isCacheFresh(cacheEntry) {
 
 function renderEventsForCurrentMode(events, calendars) {
   renderLegend(events, calendars);
-  const monthDays = resolveDaysForMode(MODE_MONTH);
-  const monthCached = getCache(monthDays);
+  const currentMonthRequest = getCurrentMonthRequest();
+  const monthCached = getCache(currentMonthRequest.key);
   const availabilityEvents = currentRangeMode === MODE_AUTO && monthCached
     ? monthCached.data.events
     : events;
@@ -552,8 +643,12 @@ function updateStatusFromGeneratedAt(generatedAt) {
   statusLine.textContent = `Updated ${formatTime(syncedAt.toISOString(), false)} · ${modeTitle(currentRangeMode)}`;
 }
 
-async function fetchEventsFromApi(days) {
-  const res = await fetch(`/api/events?days=${days}`);
+async function fetchEventsFromApi(request) {
+  const params = new URLSearchParams();
+  params.set('days', String(request.days));
+  if (request.start) params.set('start', request.start);
+
+  const res = await fetch(`/api/events?${params.toString()}`);
   if (!res.ok) {
     throw new Error(`Request failed with status ${res.status}`);
   }
@@ -561,13 +656,13 @@ async function fetchEventsFromApi(days) {
 }
 
 async function prefetchMode(mode) {
-  const days = resolveDaysForMode(mode);
-  const cached = getCache(days);
+  const request = getRequestForMode(mode);
+  const cached = getCache(request.key);
   if (isCacheFresh(cached)) return;
 
   try {
-    const data = await fetchEventsFromApi(days);
-    setCache(days, data);
+    const data = await fetchEventsFromApi(request);
+    setCache(request.key, data);
 
     if (mode === MODE_MONTH && currentRangeMode === MODE_AUTO) {
       renderHeroAvailabilityCalendar(data.events);
@@ -590,9 +685,9 @@ async function loadEvents(options = {}) {
   const { preferCache = true, forceFresh = false } = options;
   const statusLine = document.getElementById('statusLine');
   const loadToken = ++latestLoadToken;
-  const days = resolveDaysForMode(currentRangeMode);
+  const request = getRequestForMode(currentRangeMode);
 
-  const cached = getCache(days);
+  const cached = getCache(request.key);
 
   try {
     if (preferCache && cached) {
@@ -606,8 +701,8 @@ async function loadEvents(options = {}) {
       statusLine.textContent = 'Syncing...';
     }
 
-    const data = await fetchEventsFromApi(days);
-    setCache(days, data);
+    const data = await fetchEventsFromApi(request);
+    setCache(request.key, data);
 
     if (loadToken !== latestLoadToken) return;
 

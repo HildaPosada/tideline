@@ -19,6 +19,21 @@ function endOfDay(d) {
   return x;
 }
 
+function parseStartDate(input) {
+  if (!input || typeof input !== 'string') return null;
+  const match = input.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+
+  const year = Number.parseInt(match[1], 10);
+  const month = Number.parseInt(match[2], 10);
+  const day = Number.parseInt(match[3], 10);
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) return null;
+
+  const d = new Date(year, month - 1, day);
+  if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
+  return d;
+}
+
 // Expands a recurring VEVENT into concrete occurrences that fall within [rangeStart, rangeEnd].
 function expandOccurrences(vevent, rangeStart, rangeEnd) {
   const occurrences = [];
@@ -95,8 +110,9 @@ module.exports = async (req, res) => {
   const requestedDays = Number.parseInt(req.query.days || '3', 10);
   const safeDays = Number.isNaN(requestedDays) ? 3 : requestedDays;
   const daysAhead = Math.max(0, Math.min(safeDays, 31));
-  const rangeStart = startOfDay(new Date());
-  const rangeEnd = endOfDay(new Date(Date.now() + daysAhead * 86400000));
+  const requestedStart = parseStartDate(req.query.start);
+  const rangeStart = startOfDay(requestedStart || new Date());
+  const rangeEnd = endOfDay(new Date(rangeStart.getTime() + daysAhead * 86400000));
 
   const results = [];
   const errors = [];

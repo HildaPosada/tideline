@@ -5,7 +5,7 @@ const ical = require('node-ical');
 const FEEDS = [
   { id: 'hp',  label: process.env.CAL_HP_LABEL  || 'Hp',  url: process.env.CAL_HP_URL,      color: 'clay' },
   { id: 'kim', label: process.env.CAL_KIM_LABEL || 'Kim', url: process.env.CAL_KIM_URL,     color: 'teal' },
-  { id: 'kim', label: process.env.CAL_KIM_LABEL || 'Kim', url: process.env.CAL_KIM_ICAL_URL, color: 'teal' },
+  { id: 'kim', label: process.env.CAL_KIM_LABEL || 'Kim', url: process.env.CAL_KIM_URL_reminders, color: 'teal' },
 ];
 
 function startOfDay(d) {

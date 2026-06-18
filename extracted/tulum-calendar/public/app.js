@@ -10,7 +10,7 @@ const MODE_TODAY = 'today';
 const MODE_NEXT = 'next';
 const MODE_MONTH = 'month';
 const ALLOWED_MODES = [MODE_AUTO, MODE_NEXT, MODE_MONTH];
-const CACHE_TTL_MS = 90 * 1000;
+const CACHE_TTL_MS = 8 * 60 * 1000;
 let currentRangeMode = MODE_AUTO;
 let lastAutoResolvedMode = '';
 let latestLoadToken = 0;
@@ -217,7 +217,11 @@ function getRequestForMode(mode) {
   if (mode === MODE_MONTH) {
     return getMonthRequestForCursor(viewedMonthCursor);
   }
-
+  // AUTO fetches the full current month so the availability widget
+  // can reuse the same response — no separate month=current call needed.
+  if (mode === MODE_AUTO) {
+    return getMonthRequestForCursor(getCurrentMonthStart());
+  }
   const days = resolveDaysForMode(mode);
   return {
     days,
@@ -767,12 +771,7 @@ async function loadEvents(options = {}) {
       prefetchAdjacentMonths();
     }
     if (currentRangeMode === MODE_AUTO) {
-      fetch('/api/events?month=current')
-        .then((r) => r.json())
-        .then((d) => {
-          if (loadToken === latestLoadToken) renderAvailability(d.events);
-        })
-        .catch(() => {});
+      renderAvailability(data.events);
     }
   } catch (err) {
     if (loadToken !== latestLoadToken) return;
@@ -793,16 +792,14 @@ function init() {
 
   renderClockAndDate();
   loadEvents({ preferCache: true, forceFresh: true });
-  prefetchOtherModes();
 
   setInterval(() => {
     renderClockAndDate();
     maybeRefreshAutoModeTitle();
-  }, 30000); // refresh clock every 30s and update auto mode when time window shifts
+  }, 30000);
   setInterval(() => {
     loadEvents({ preferCache: true, forceFresh: true });
-    prefetchOtherModes();
-  }, 5 * 60000); // refresh calendar data every 5 min
+  }, 15 * 60 * 1000); // 15 min — wall calendar doesn't need sub-5-min freshness
 }
 
 init();

@@ -42,7 +42,9 @@ function expandOccurrences(vevent, rangeStart, rangeEnd) {
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 's-maxage=120, stale-while-revalidate=60');
 
-  const daysAhead = Math.min(parseInt(req.query.days || '3', 10), 7);
+  const requestedDays = Number.parseInt(req.query.days || '3', 10);
+  const safeDays = Number.isNaN(requestedDays) ? 3 : requestedDays;
+  const daysAhead = Math.max(0, Math.min(safeDays, 31));
   const rangeStart = startOfDay(new Date());
   const rangeEnd = endOfDay(new Date(Date.now() + daysAhead * 86400000));
 

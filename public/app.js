@@ -298,20 +298,28 @@ const MONTH_INSPIRATIONS = [
 
 function getMonthInspiration() {
   const now = new Date();
-  const seed = now.getFullYear() * 100 + now.getMonth() + now.getDate();
+  const utcDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  const dayNum = utcDate.getUTCDay() || 7;
+  utcDate.setUTCDate(utcDate.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+  const seed = utcDate.getUTCFullYear() * 100 + weekNo;
   return MONTH_INSPIRATIONS[seed % MONTH_INSPIRATIONS.length];
 }
 
-function createMonthInspirationCard() {
+function renderMonthInspiration() {
+  const container = document.getElementById('availability');
+  if (!container) return;
+
   const item = getMonthInspiration();
-  const card = document.createElement('aside');
-  card.className = 'month-inspiration';
-  card.innerHTML = `
-    <div class="month-inspiration-kicker">Monthly Focus</div>
-    <p class="month-inspiration-quote">${escapeHtml(item.quote)}</p>
-    <p class="month-inspiration-meta">${escapeHtml(item.woman)} · ${escapeHtml(item.achievement)}</p>
+  container.style.display = '';
+  container.classList.add('is-inspiration');
+  container.innerHTML = `
+    <div class="hero-inspiration">
+      <p class="hero-inspiration-quote">${escapeHtml(item.quote)}</p>
+      <p class="hero-inspiration-meta">${escapeHtml(item.woman)} · ${escapeHtml(item.achievement)}</p>
+    </div>
   `;
-  return card;
 }
 
 function busyLevel(count) {
@@ -372,6 +380,7 @@ function renderAvailability(events) {
     return;
   }
   container.style.display = '';
+  container.classList.remove('is-inspiration');
 
   const now = new Date();
   const year = now.getFullYear();
@@ -444,9 +453,9 @@ function applyRangeSelection(mode) {
   const agenda = document.querySelector('.agenda');
   agenda.classList.toggle('is-month', mode === MODE_MONTH);
 
-  // Availability widget visible only in Auto mode
+  // Hero widget visible in Auto and Month mode.
   const availabilityEl = document.getElementById('availability');
-  if (availabilityEl) availabilityEl.style.display = mode === MODE_AUTO ? '' : 'none';
+  if (availabilityEl) availabilityEl.style.display = mode === MODE_AUTO || mode === MODE_MONTH ? '' : 'none';
 
   autoBtn.setAttribute('aria-pressed', mode === MODE_AUTO ? 'true' : 'false');
   if (nextBtn) nextBtn.setAttribute('aria-pressed', mode === MODE_NEXT ? 'true' : 'false');
@@ -633,7 +642,6 @@ function renderMonthBoard(events) {
   nav.appendChild(nextBtn);
   header.appendChild(nav);
   board.appendChild(header);
-  board.appendChild(createMonthInspirationCard());
 
   const weekdays = document.createElement('div');
   weekdays.className = 'month-weekdays';
@@ -765,6 +773,7 @@ function renderEventsForCurrentMode(events, calendars) {
     return;
   }
   if (currentRangeMode === MODE_MONTH) {
+    renderMonthInspiration();
     renderMonthBoard(events);
   } else {
     renderAgenda(events);

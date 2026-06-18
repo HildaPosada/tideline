@@ -325,7 +325,7 @@ body {
   padding: 0.3rem;
   border-radius: 16px;
   background: #efe7db;
-  min-width: 250px;
+  width: fit-content;
 }
 
 .range-btn {
@@ -337,7 +337,7 @@ body {
   color: var(--teal-deep);
   background: transparent;
   min-height: 44px;
-  min-width: 98px;
+  min-width: 92px;
   padding: 0.55rem 0.7rem;
   line-height: 1.1;
   text-align: center;
@@ -402,44 +402,38 @@ body {
 
 .month-board {
   display: grid;
-  grid-template-rows: auto auto auto 1fr;
+  grid-template-rows: auto auto 1fr;
   gap: 0.45rem;
   height: 100%;
   min-height: 0;
 }
 
-.month-inspiration {
+.availability.is-inspiration {
+  margin-top: 1.4rem;
+}
+
+.hero-inspiration {
   background:
-    linear-gradient(135deg, rgba(168, 184, 156, 0.22), rgba(193, 122, 92, 0.12)),
-    radial-gradient(circle at 85% 10%, rgba(61, 92, 86, 0.16), transparent 40%),
-    #f7efe2;
-  border: 1px solid #dfd1bf;
+    linear-gradient(150deg, rgba(250, 246, 240, 0.16), rgba(168, 184, 156, 0.12)),
+    radial-gradient(circle at 10% 0%, rgba(193, 122, 92, 0.22), transparent 42%);
+  border: 1px solid rgba(250, 246, 240, 0.26);
   border-radius: 14px;
-  padding: 0.62rem 0.72rem;
-  box-shadow: 0 6px 18px rgba(43, 43, 38, 0.05);
+  padding: 0.9rem 0.95rem;
+  box-shadow: inset 0 0 0 1px rgba(250, 246, 240, 0.06);
 }
 
-.month-inspiration-kicker {
-  font-size: 0.64rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-weight: 700;
-  color: var(--teal-deep);
-}
-
-.month-inspiration-quote {
-  margin-top: 0.32rem;
+.hero-inspiration-quote {
   font-family: var(--font-display);
-  font-size: 0.92rem;
-  line-height: 1.25;
-  color: #2f322e;
+  font-size: 1rem;
+  line-height: 1.35;
+  color: var(--white-soft);
 }
 
-.month-inspiration-meta {
-  margin-top: 0.32rem;
-  font-size: 0.66rem;
-  line-height: 1.3;
-  color: #4d635e;
+.hero-inspiration-meta {
+  margin-top: 0.5rem;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: rgba(250, 246, 240, 0.74);
   letter-spacing: 0.02em;
 }
 
@@ -503,26 +497,27 @@ body {
 .month-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  grid-template-rows: repeat(6, auto);
+  grid-template-rows: repeat(6, minmax(0, 1fr));
   gap: 0.3rem;
   min-height: 0;
-  align-content: start;
+  height: 100%;
+  align-content: stretch;
 }
 
 .month-cell {
-  min-height: 84px;
+  min-height: 0;
+  height: 100%;
   border-radius: 10px;
-  padding: 0.35rem;
+  padding: 0.28rem;
   background: #f2ebe0;
   border: 1px solid #e3d9cb;
   display: flex;
   flex-direction: column;
-  gap: 0.26rem;
+  gap: 0.2rem;
 }
 
-.month-cell.density-1 { min-height: 100px; }
-.month-cell.density-2 { min-height: 122px; }
-.month-cell.density-3 { min-height: 158px; }
+.month-cell.density-2 { border-color: #dbcdbb; }
+.month-cell.density-3 { border-color: #cfbea9; }
 
 .month-cell.is-empty {
   background: transparent;
@@ -547,21 +542,22 @@ body {
 .month-events {
   min-height: 0;
   display: grid;
-  gap: 0.2rem;
+  gap: 0.14rem;
+  align-content: start;
 }
 
 .month-cell.is-expanded .month-events {
-  max-height: 118px;
+  max-height: 88px;
   overflow: auto;
   padding-right: 2px;
 }
 
 /* Tide-bead chips: a rounded form that feels softer than rigid calendar cubes. */
 .month-chip {
-  font-size: 0.62rem;
+  font-size: 0.56rem;
   line-height: 1.2;
   border-radius: 999px;
-  padding: 0.16rem 0.42rem;
+  padding: 0.12rem 0.38rem;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;

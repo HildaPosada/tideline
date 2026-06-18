@@ -406,7 +406,7 @@ body {
 .month-board-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.7rem;
   margin-bottom: 0.15rem;
 }

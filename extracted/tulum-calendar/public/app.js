@@ -241,7 +241,7 @@ function modeTitle(mode) {
     return getAutoResolvedMode() === MODE_TODAY ? 'Auto (Today)' : 'Auto (Next 3 days)';
   }
   if (mode === MODE_TODAY) return 'Today';
-  if (mode === MODE_MONTH) return 'Month';
+  if (mode === MODE_MONTH) return MONTH_NAMES[viewedMonthCursor.getMonth()];
   return 'Next 3 days';
 }
 
@@ -490,10 +490,6 @@ function renderMonthBoard(events) {
   const header = document.createElement('div');
   header.className = 'month-board-header';
 
-  const monthTitle = document.createElement('h3');
-  monthTitle.className = 'month-board-title';
-  monthTitle.textContent = MONTH_NAMES[month];
-
   const nav = document.createElement('div');
   nav.className = 'month-board-nav';
 
@@ -525,7 +521,6 @@ function renderMonthBoard(events) {
 
   nav.appendChild(prevBtn);
   nav.appendChild(nextBtn);
-  header.appendChild(monthTitle);
   header.appendChild(nav);
   board.appendChild(header);
 

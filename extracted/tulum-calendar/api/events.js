@@ -68,15 +68,21 @@ function mergeDuplicateEvents(events) {
 
     const existing = mergedByKey.get(key);
     if (!existing) {
-      mergedByKey.set(key, { ...ev });
+      mergedByKey.set(key, {
+        ...ev,
+        people: [ev.person],
+      });
       continue;
     }
 
     // If the same event appears on both calendars, collapse to one shared item.
     if (existing.person !== ev.person) {
+      existing.people = Array.from(new Set([...(existing.people || []), ev.person]));
       existing.person = 'shared';
       existing.label = 'Shared';
       existing.color = 'shared';
+    } else {
+      existing.people = Array.from(new Set([...(existing.people || []), ev.person]));
     }
   }
 

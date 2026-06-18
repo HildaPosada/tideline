@@ -19,6 +19,9 @@
   --font-body: 'Inter', sans-serif;
 
   --radius: 18px;
+  --busy-free: #8caf92;
+  --busy-medium: #d4a55d;
+  --busy-high: #cb655e;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -143,6 +146,104 @@ body {
   margin-top: 2.5rem;
   letter-spacing: 0.04em;
 }
+
+.hero-calendar-card {
+  margin-top: 1.2rem;
+  border-radius: 14px;
+  border: 1px solid rgba(250, 246, 240, 0.24);
+  background: rgba(250, 246, 240, 0.08);
+  backdrop-filter: blur(2px);
+  padding: 0.75rem;
+}
+
+.hero-calendar-card.is-hidden {
+  display: none;
+}
+
+.hero-calendar-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.7rem;
+  margin-bottom: 0.5rem;
+}
+
+.hero-calendar-title {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(250, 246, 240, 0.92);
+}
+
+.hero-calendar-subtitle {
+  font-size: 0.72rem;
+  color: rgba(250, 246, 240, 0.62);
+}
+
+.hero-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.2rem;
+}
+
+.hero-cal-cell {
+  border-radius: 6px;
+  height: 22px;
+  border: 1px solid rgba(250, 246, 240, 0.17);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-cal-cell.is-empty {
+  opacity: 0.14;
+}
+
+.hero-cal-cell.is-today {
+  border-color: rgba(250, 246, 240, 0.85);
+  box-shadow: 0 0 0 1px rgba(250, 246, 240, 0.3);
+}
+
+.hero-cal-fill {
+  position: absolute;
+  inset: 0;
+}
+
+.hero-cal-day {
+  position: absolute;
+  right: 3px;
+  bottom: 1px;
+  font-size: 0.6rem;
+  color: rgba(43, 43, 38, 0.85);
+  text-shadow: 0 1px 0 rgba(250, 246, 240, 0.45);
+  font-weight: 600;
+}
+
+.hero-calendar-legend {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  font-size: 0.68rem;
+  color: rgba(250, 246, 240, 0.72);
+}
+
+.hero-calendar-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.busy-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.busy-dot.free { background: var(--busy-free); }
+.busy-dot.medium { background: var(--busy-medium); }
+.busy-dot.busy { background: var(--busy-high); }
 
 .legend {
   display: flex;
@@ -499,6 +600,8 @@ body {
   }
   html, body { overflow: auto; }
   .hero-date { font-size: 7rem; }
+  .hero-calendar-card { margin-top: 1rem; }
+  .hero-cal-cell { height: 18px; }
   .legend { padding-top: 1.5rem; }
   .agenda {
     padding: 4.5vh 5.2vw;

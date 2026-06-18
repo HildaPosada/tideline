@@ -15,6 +15,7 @@ let currentRangeMode = MODE_AUTO;
 let lastAutoResolvedMode = '';
 let latestLoadToken = 0;
 const eventsCache = new Map();
+const PERSON_ORDER = ['hp', 'kim'];
 
 // Ambient line rotates by day-of-week to keep the wall display feeling alive
 // without needing a live weather API. Tulum / coastal wellness register.
@@ -195,12 +196,125 @@ function modeTitle(mode) {
   return 'Next 3 days';
 }
 
+function busyLevel(count) {
+  if (count >= 3) return 'busy';
+  if (count >= 1) return 'medium';
+  return 'free';
+}
+
+function busyColor(level) {
+  if (level === 'busy') return 'var(--busy-high)';
+  if (level === 'medium') return 'var(--busy-medium)';
+  return 'var(--busy-free)';
+}
+
+function toDayKey(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function countPeopleForEvent(ev) {
+  if (Array.isArray(ev.people) && ev.people.length > 0) {
+    return ev.people.filter((p) => PERSON_ORDER.indexOf(p) !== -1);
+  }
+  if (PERSON_ORDER.indexOf(ev.person) !== -1) return [ev.person];
+  if (ev.person === 'shared') return PERSON_ORDER.slice();
+  return [];
+}
+
+function buildDailyBusyMap(events, year, month) {
+  const byDay = new Map();
+
+  for (const ev of events) {
+    const d = new Date(ev.start);
+    if (d.getFullYear() !== year || d.getMonth() !== month) continue;
+    const key = toDayKey(d);
+    if (!byDay.has(key)) byDay.set(key, { hp: 0, kim: 0 });
+    const bucket = byDay.get(key);
+
+    const people = countPeopleForEvent(ev);
+    for (const person of people) {
+      bucket[person] = (bucket[person] || 0) + 1;
+    }
+  }
+
+  return byDay;
+}
+
+function renderHeroAvailabilityCalendar(events) {
+  const card = document.getElementById('heroCalendarCard');
+  const grid = document.getElementById('heroCalendarGrid');
+  const title = document.getElementById('heroCalendarTitle');
+  if (!card || !grid || !title) return;
+
+  if (currentRangeMode !== MODE_AUTO) {
+    card.classList.add('is-hidden');
+    return;
+  }
+
+  card.classList.remove('is-hidden');
+
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const todayKey = toDayKey(now);
+  title.textContent = `${MONTH_NAMES[month]} Availability`;
+
+  const firstDay = new Date(year, month, 1);
+  const leading = firstDay.getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const busyByDay = buildDailyBusyMap(events, year, month);
+
+  grid.innerHTML = '';
+  let dayNumber = 1;
+
+  for (let i = 0; i < 42; i += 1) {
+    const cell = document.createElement('div');
+    cell.className = 'hero-cal-cell';
+
+    const isEmpty = i < leading || dayNumber > daysInMonth;
+    if (isEmpty) {
+      cell.classList.add('is-empty');
+      grid.appendChild(cell);
+      continue;
+    }
+
+    const date = new Date(year, month, dayNumber);
+    const key = toDayKey(date);
+    if (key === todayKey) cell.classList.add('is-today');
+
+    const counts = busyByDay.get(key) || { hp: 0, kim: 0 };
+    const hpLevel = busyLevel(counts.hp);
+    const kimLevel = busyLevel(counts.kim);
+
+    const fill = document.createElement('div');
+    fill.className = 'hero-cal-fill';
+    fill.style.background = `linear-gradient(to right, ${busyColor(hpLevel)} 0 50%, ${busyColor(kimLevel)} 50% 100%)`;
+    cell.appendChild(fill);
+
+    const num = document.createElement('span');
+    num.className = 'hero-cal-day';
+    num.textContent = String(dayNumber);
+    cell.appendChild(num);
+
+    const hpText = hpLevel[0].toUpperCase() + hpLevel.slice(1);
+    const kimText = kimLevel[0].toUpperCase() + kimLevel.slice(1);
+    cell.title = `Hp: ${hpText} (${counts.hp}) | Kim: ${kimText} (${counts.kim})`;
+
+    grid.appendChild(cell);
+    dayNumber += 1;
+  }
+}
+
 function applyRangeSelection(mode) {
   currentRangeMode = mode;
 
   const autoBtn = document.getElementById('rangeAuto');
   const nextBtn = document.getElementById('rangeNext');
   const monthBtn = document.getElementById('rangeMonth');
+  const heroCalendarCard = document.getElementById('heroCalendarCard');
 
   autoBtn.classList.toggle('is-active', mode === MODE_AUTO);
   nextBtn.classList.toggle('is-active', mode === MODE_NEXT);
@@ -208,6 +322,9 @@ function applyRangeSelection(mode) {
 
   const agenda = document.querySelector('.agenda');
   agenda.classList.toggle('is-month', mode === MODE_MONTH);
+  if (heroCalendarCard) {
+    heroCalendarCard.classList.toggle('is-hidden', mode !== MODE_AUTO);
+  }
 
   autoBtn.setAttribute('aria-pressed', mode === MODE_AUTO ? 'true' : 'false');
   nextBtn.setAttribute('aria-pressed', mode === MODE_NEXT ? 'true' : 'false');
@@ -416,6 +533,12 @@ function isCacheFresh(cacheEntry) {
 
 function renderEventsForCurrentMode(events, calendars) {
   renderLegend(events, calendars);
+  const monthDays = resolveDaysForMode(MODE_MONTH);
+  const monthCached = getCache(monthDays);
+  const availabilityEvents = currentRangeMode === MODE_AUTO && monthCached
+    ? monthCached.data.events
+    : events;
+  renderHeroAvailabilityCalendar(availabilityEvents);
   if (currentRangeMode === MODE_MONTH) {
     renderMonthBoard(events);
   } else {
@@ -445,6 +568,10 @@ async function prefetchMode(mode) {
   try {
     const data = await fetchEventsFromApi(days);
     setCache(days, data);
+
+    if (mode === MODE_MONTH && currentRangeMode === MODE_AUTO) {
+      renderHeroAvailabilityCalendar(data.events);
+    }
   } catch (err) {
     // Prefetch is best-effort and should not affect visible UI.
   }

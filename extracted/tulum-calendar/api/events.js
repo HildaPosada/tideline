@@ -1,10 +1,11 @@
 const ical = require('node-ical');
 
-// Two named feeds, each with a color identity used by the frontend.
-// URLs come from Vercel environment variables, never committed to the repo.
+// Two named feeds. Kim can have both a Google and an iCloud calendar — both
+// merge under the same id/label/color so no duplicate person name appears.
 const FEEDS = [
-  { id: 'hp', label: process.env.CAL_HP_LABEL || 'Hp', url: process.env.CAL_HP_URL, color: 'clay' },
-  { id: 'kim', label: process.env.CAL_KIM_LABEL || 'Kim', url: process.env.CAL_KIM_URL, color: 'teal' },
+  { id: 'hp',  label: process.env.CAL_HP_LABEL  || 'Hp',  url: process.env.CAL_HP_URL,      color: 'clay' },
+  { id: 'kim', label: process.env.CAL_KIM_LABEL || 'Kim', url: process.env.CAL_KIM_URL,     color: 'teal' },
+  { id: 'kim', label: process.env.CAL_KIM_LABEL || 'Kim', url: process.env.CAL_KIM_ICAL_URL, color: 'teal' },
 ];
 
 function startOfDay(d) {

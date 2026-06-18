@@ -463,13 +463,14 @@ body {
 .month-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  grid-template-rows: repeat(6, minmax(0, 1fr));
+  grid-template-rows: repeat(6, auto);
   gap: 0.3rem;
   min-height: 0;
+  align-content: start;
 }
 
 .month-cell {
-  min-height: 0;
+  min-height: 84px;
   border-radius: 10px;
   padding: 0.35rem;
   background: #f2ebe0;
@@ -478,6 +479,10 @@ body {
   flex-direction: column;
   gap: 0.26rem;
 }
+
+.month-cell.density-1 { min-height: 96px; }
+.month-cell.density-2 { min-height: 112px; }
+.month-cell.density-3 { min-height: 132px; }
 
 .month-cell.is-empty {
   background: transparent;
@@ -503,6 +508,12 @@ body {
   min-height: 0;
   display: grid;
   gap: 0.2rem;
+}
+
+.month-cell.is-expanded .month-events {
+  max-height: 118px;
+  overflow: auto;
+  padding-right: 2px;
 }
 
 /* Tide-bead chips: a rounded form that feels softer than rigid calendar cubes. */
@@ -536,9 +547,18 @@ body {
 }
 
 .month-more {
+  appearance: none;
+  background: transparent;
+  border: 0;
   font-size: 0.6rem;
   color: var(--sage);
-  padding-left: 0.2rem;
+  text-align: left;
+  padding: 0 0 0 0.2rem;
+}
+
+.month-more:focus-visible {
+  outline: 1px solid var(--clay);
+  outline-offset: 1px;
 }
 
 .day-group {

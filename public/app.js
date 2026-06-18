@@ -17,6 +17,12 @@ let latestLoadToken = 0;
 const eventsCache = new Map();
 const PERSON_ORDER = ['hp', 'kim'];
 let viewedMonthCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+const expandedMonthDays = new Set();
+
+function getCurrentMonthStart() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1);
+}
 
 // Ambient line rotates by day-of-week to keep the wall display feeling alive
 // without needing a live weather API. Tulum / coastal wellness register.
@@ -198,14 +204,18 @@ function getMonthWindowFor(startDate) {
   };
 }
 
+function getMonthRequestForCursor(cursorDate) {
+  const monthWindow = getMonthWindowFor(cursorDate);
+  return {
+    days: monthWindow.days,
+    start: monthWindow.startKey,
+    key: `month:${monthWindow.startKey}:${monthWindow.days}`,
+  };
+}
+
 function getRequestForMode(mode) {
   if (mode === MODE_MONTH) {
-    const monthWindow = getMonthWindowFor(viewedMonthCursor);
-    return {
-      days: monthWindow.days,
-      start: monthWindow.startKey,
-      key: `month:${monthWindow.startKey}:${monthWindow.days}`,
-    };
+    return getMonthRequestForCursor(viewedMonthCursor);
   }
 
   const days = resolveDaysForMode(mode);
@@ -217,14 +227,7 @@ function getRequestForMode(mode) {
 }
 
 function getCurrentMonthRequest() {
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthWindow = getMonthWindowFor(monthStart);
-  return {
-    days: monthWindow.days,
-    start: monthWindow.startKey,
-    key: `month:${monthWindow.startKey}:${monthWindow.days}`,
-  };
+  return getMonthRequestForCursor(getCurrentMonthStart());
 }
 
 function resolveDaysForMode(mode) {
@@ -394,8 +397,17 @@ function wireRangeToggle() {
     btn.addEventListener('click', async () => {
       const nextMode = btn.getAttribute('data-range-mode');
       if (nextMode === currentRangeMode || ALLOWED_MODES.indexOf(nextMode) === -1) return;
+
+      if (nextMode === MODE_MONTH) {
+        viewedMonthCursor = getCurrentMonthStart();
+        expandedMonthDays.clear();
+      }
+
       applyRangeSelection(nextMode);
       await loadEvents();
+      if (nextMode === MODE_MONTH) {
+        prefetchAdjacentMonths();
+      }
     });
   }
 }
@@ -507,16 +519,18 @@ function renderMonthBoard(events) {
 
   prevBtn.addEventListener('click', async () => {
     viewedMonthCursor = new Date(viewedMonthCursor.getFullYear(), viewedMonthCursor.getMonth() - 1, 1);
+    expandedMonthDays.clear();
     applyRangeSelection(MODE_MONTH);
     await loadEvents({ preferCache: true, forceFresh: false });
-    prefetchMode(MODE_MONTH);
+    prefetchAdjacentMonths();
   });
 
   nextBtn.addEventListener('click', async () => {
     viewedMonthCursor = new Date(viewedMonthCursor.getFullYear(), viewedMonthCursor.getMonth() + 1, 1);
+    expandedMonthDays.clear();
     applyRangeSelection(MODE_MONTH);
     await loadEvents({ preferCache: true, forceFresh: false });
-    prefetchMode(MODE_MONTH);
+    prefetchAdjacentMonths();
   });
 
   nav.appendChild(prevBtn);
@@ -554,6 +568,8 @@ function renderMonthBoard(events) {
     const dayDate = new Date(year, month, renderedDay);
     const dayKey = toLocalDayKey(dayDate);
     const dayEvents = monthEvents.get(dayKey) || [];
+    const expandedKey = `${year}-${month}-${dayKey}`;
+    const isExpanded = expandedMonthDays.has(expandedKey);
 
     if (dayKey === todayKey) cell.classList.add('is-today');
     if (dayDate < new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
@@ -568,7 +584,20 @@ function renderMonthBoard(events) {
     const eventsWrap = document.createElement('div');
     eventsWrap.className = 'month-events';
 
-    const maxVisible = 2;
+    if (dayEvents.length >= 5) {
+      cell.classList.add('density-3');
+    } else if (dayEvents.length >= 3) {
+      cell.classList.add('density-2');
+    } else if (dayEvents.length >= 1) {
+      cell.classList.add('density-1');
+    }
+
+    if (isExpanded) {
+      cell.classList.add('is-expanded');
+    }
+
+    const baseVisible = dayEvents.length >= 5 ? 4 : dayEvents.length >= 3 ? 3 : 2;
+    const maxVisible = isExpanded ? Math.min(dayEvents.length, 8) : baseVisible;
     for (let i = 0; i < Math.min(maxVisible, dayEvents.length); i += 1) {
       const ev = dayEvents[i];
       const cleanTitle = shortenText(simplifyEventTitle(ev.title), 20);
@@ -580,10 +609,24 @@ function renderMonthBoard(events) {
       eventsWrap.appendChild(chip);
     }
 
-    if (dayEvents.length > maxVisible) {
-      const more = document.createElement('div');
+    if (dayEvents.length > baseVisible || isExpanded) {
+      const more = document.createElement('button');
       more.className = 'month-more';
-      more.textContent = `+${dayEvents.length - maxVisible} more`;
+      more.type = 'button';
+      if (isExpanded) {
+        const hidden = Math.max(0, dayEvents.length - maxVisible);
+        more.textContent = hidden > 0 ? `Show less (+${hidden} hidden)` : 'Show less';
+      } else {
+        more.textContent = `+${dayEvents.length - baseVisible} more`;
+      }
+      more.addEventListener('click', () => {
+        if (expandedMonthDays.has(expandedKey)) {
+          expandedMonthDays.delete(expandedKey);
+        } else {
+          expandedMonthDays.add(expandedKey);
+        }
+        renderMonthBoard(events);
+      });
       eventsWrap.appendChild(more);
     }
 
@@ -667,6 +710,25 @@ async function prefetchMode(mode) {
   }
 }
 
+async function prefetchAdjacentMonths() {
+  const prevCursor = new Date(viewedMonthCursor.getFullYear(), viewedMonthCursor.getMonth() - 1, 1);
+  const nextCursor = new Date(viewedMonthCursor.getFullYear(), viewedMonthCursor.getMonth() + 1, 1);
+  const requests = [getMonthRequestForCursor(prevCursor), getMonthRequestForCursor(nextCursor)];
+
+  await Promise.all(
+    requests.map(async (request) => {
+      const cached = getCache(request.key);
+      if (isCacheFresh(cached)) return;
+      try {
+        const data = await fetchEventsFromApi(request);
+        setCache(request.key, data);
+      } catch (err) {
+        // Best effort prefetch only.
+      }
+    })
+  );
+}
+
 async function prefetchOtherModes() {
   const modes = [MODE_AUTO, MODE_NEXT, MODE_MONTH];
   await Promise.all(
@@ -707,6 +769,9 @@ async function loadEvents(options = {}) {
 
     renderEventsForCurrentMode(data.events, data.calendars || []);
     updateStatusFromGeneratedAt(data.generatedAt);
+    if (currentRangeMode === MODE_MONTH) {
+      prefetchAdjacentMonths();
+    }
   } catch (err) {
     if (loadToken !== latestLoadToken) return;
     console.error('Failed to load events', err);

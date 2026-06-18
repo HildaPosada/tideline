@@ -246,11 +246,16 @@ function resolveDaysForMode(mode) {
 
 function modeTitle(mode) {
   if (mode === MODE_AUTO) {
-    return 'Auto';
+    return getAutoResolvedMode() === MODE_TODAY ? 'Today' : 'Next 3 days';
   }
   if (mode === MODE_TODAY) return 'Today';
   if (mode === MODE_MONTH) return MONTH_NAMES[viewedMonthCursor.getMonth()];
   return 'Next 3 days';
+}
+
+function statusModeLabel(mode) {
+  if (mode === MODE_AUTO) return '';
+  return modeTitle(mode);
 }
 
 const MONTH_INSPIRATIONS = [
@@ -783,7 +788,10 @@ function renderEventsForCurrentMode(events, calendars) {
 function updateStatusFromGeneratedAt(generatedAt) {
   const statusLine = document.getElementById('statusLine');
   const syncedAt = new Date(generatedAt);
-  statusLine.textContent = `Updated ${formatTime(syncedAt.toISOString(), false)} · ${modeTitle(currentRangeMode)}`;
+  const modeLabel = statusModeLabel(currentRangeMode);
+  statusLine.textContent = modeLabel
+    ? `Updated ${formatTime(syncedAt.toISOString(), false)} · ${modeLabel}`
+    : `Updated ${formatTime(syncedAt.toISOString(), false)}`;
 }
 
 async function fetchEventsFromApi(request) {
@@ -877,7 +885,8 @@ async function loadEvents(options = {}) {
     if (loadToken !== latestLoadToken) return;
     console.error('Failed to load events', err);
     if (cached) {
-      statusLine.textContent = `Offline copy · ${modeTitle(currentRangeMode)}`;
+      const modeLabel = statusModeLabel(currentRangeMode);
+      statusLine.textContent = modeLabel ? `Offline copy · ${modeLabel}` : 'Offline copy';
       return;
     }
     statusLine.textContent = 'Connection trouble — retrying soon';

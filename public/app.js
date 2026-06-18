@@ -246,11 +246,72 @@ function resolveDaysForMode(mode) {
 
 function modeTitle(mode) {
   if (mode === MODE_AUTO) {
-    return getAutoResolvedMode() === MODE_TODAY ? 'Auto (Today)' : 'Auto (Next 3 days)';
+    return 'Auto';
   }
   if (mode === MODE_TODAY) return 'Today';
   if (mode === MODE_MONTH) return MONTH_NAMES[viewedMonthCursor.getMonth()];
   return 'Next 3 days';
+}
+
+const MONTH_INSPIRATIONS = [
+  {
+    woman: 'Ada Lovelace',
+    achievement: 'Pioneered the first published algorithm for a machine in 1843.',
+    quote: 'Build what does not exist yet, and let logic become a language for possibility.',
+  },
+  {
+    woman: 'Katherine Johnson',
+    achievement: 'Helped calculate mission trajectories that powered early U.S. spaceflight.',
+    quote: 'Master the details so your confidence comes from proof, not noise.',
+  },
+  {
+    woman: 'Grace Hopper',
+    achievement: 'Drove modern software practice and helped shape compiler thinking.',
+    quote: 'When a process slows your progress, redesign the process.',
+  },
+  {
+    woman: 'Indra Nooyi',
+    achievement: 'Transformed strategy at global scale while leading with long-horizon thinking.',
+    quote: 'Choose decisions that still look smart five years from now.',
+  },
+  {
+    woman: 'Sara Blakely',
+    achievement: 'Built a global company from a simple product insight and persistence.',
+    quote: 'Small experiments, repeated consistently, can change your whole trajectory.',
+  },
+  {
+    woman: 'Fei-Fei Li',
+    achievement: 'Advanced AI research and opened pathways for more human-centered systems.',
+    quote: 'Pair technical excellence with empathy; both are multipliers.',
+  },
+  {
+    woman: 'Reshma Saujani',
+    achievement: 'Expanded access to coding education for girls through mission-first leadership.',
+    quote: 'Progress grows faster when you act before you feel fully ready.',
+  },
+  {
+    woman: 'Whitney Wolfe Herd',
+    achievement: 'Scaled a global tech platform by centering user trust and safety.',
+    quote: 'Design for respect first, and growth follows with fewer regrets.',
+  },
+];
+
+function getMonthInspiration() {
+  const now = new Date();
+  const seed = now.getFullYear() * 100 + now.getMonth() + now.getDate();
+  return MONTH_INSPIRATIONS[seed % MONTH_INSPIRATIONS.length];
+}
+
+function createMonthInspirationCard() {
+  const item = getMonthInspiration();
+  const card = document.createElement('aside');
+  card.className = 'month-inspiration';
+  card.innerHTML = `
+    <div class="month-inspiration-kicker">Monthly Focus</div>
+    <p class="month-inspiration-quote">${escapeHtml(item.quote)}</p>
+    <p class="month-inspiration-meta">${escapeHtml(item.woman)} · ${escapeHtml(item.achievement)}</p>
+  `;
+  return card;
 }
 
 function busyLevel(count) {
@@ -572,6 +633,7 @@ function renderMonthBoard(events) {
   nav.appendChild(nextBtn);
   header.appendChild(nav);
   board.appendChild(header);
+  board.appendChild(createMonthInspirationCard());
 
   const weekdays = document.createElement('div');
   weekdays.className = 'month-weekdays';
